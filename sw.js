@@ -1,7 +1,6 @@
-// Nombre y versión de la caché (Cambiar versión si actualizas el HTML en el futuro)
-const CACHE_NAME = 'edan-salud-cache-v1';
+// IMPORTANTE: Incrementa la versión (v2 -> v3 -> v4) cada vez que subas cambios a GitHub
+const CACHE_NAME = 'edan-salud-v3';
 
-// Archivos vitales que se guardarán en el celular para funcionar sin internet
 const urlsToCache = [
   './',
   './index.html',
@@ -9,27 +8,20 @@ const urlsToCache = [
   'https://unpkg.com/dexie@latest/dist/dexie.js'
 ];
 
-// 1. INSTALACIÓN: Descarga la app al celular la primera vez que se visita con internet
+// Instalación: Descarga la versión nueva sin forzar el reinicio inmediato
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => {
-        console.log('Caché EDAN instalada correctamente');
-        return cache.addAll(urlsToCache);
-      })
+    caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
   );
-  self.skipWaiting();
 });
 
-// 2. ACTIVACIÓN: Borra cachés antiguos si llegas a actualizar la app
+// Activación: Elimina la caché de interfaz vieja al recibir la orden
 self.addEventListener('activate', event => {
-  const cacheWhitelist = [CACHE_NAME];
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cacheName => {
-          if (cacheWhitelist.indexOf(cacheName) === -1) {
-            console.log('Borrando caché antigua:', cacheName);
+          if (cacheName !== CACHE_NAME) {
             return caches.delete(cacheName);
           }
         })
@@ -39,37 +31,28 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
-// 3. INTERCEPTACIÓN DE RED (FETCH): Estrategia "Caché-First" (Ideal para zonas sin señal)
+// Escucha la instrucción de activación inmediata desde la notificación flotante
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
+// Estrategia Stale-While-Revalidate (Apertura instantánea + descarga silenciosa)
 self.addEventListener('fetch', event => {
-  // Ignoramos las peticiones de subida de datos (POST) para que las maneje Dexie.js
   if (event.request.method !== 'GET') return;
 
   event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        // Si el archivo ya está en el celular (Caché), lo entregamos instantáneamente
-        if (response) {
-          return response;
+    caches.match(event.request).then(cachedResponse => {
+      const fetchPromise = fetch(event.request).then(networkResponse => {
+        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+          const responseClone = networkResponse.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseClone));
         }
-        // Si no está, lo buscamos en internet y lo guardamos
-        return fetch(event.request).then(
-          function (networkResponse) {
-            // Verificar si es una respuesta válida
-            if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
-              return networkResponse;
-            }
-            // Clonamos la respuesta para guardarla en la caché
-            const responseToCache = networkResponse.clone();
-            caches.open(CACHE_NAME)
-              .then(function (cache) {
-                cache.put(event.request, responseToCache);
-              });
-            return networkResponse;
-          }
-        ).catch(() => {
-          // Si no hay red y no está en caché (Fallback general para no crashear)
-          console.log('Modo offline total activado para:', event.request.url);
-        });
-      })
+        return networkResponse;
+      }).catch(() => cachedResponse);
+
+      return cachedResponse || fetchPromise;
+    })
   );
 });
