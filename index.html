@@ -1,12 +1,1024 @@
-// Registro de Service Worker con detector de actualizaciones y aviso en pantalla
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>RAIZ Consultores - EDAN Salud</title>
+  <link rel="manifest" href="manifest.json">
+  <script src="https://unpkg.com/dexie@latest/dist/dexie.js"></script>
+  <style>
+    /* Reset Global */
+    *, *::before, *::after { box-sizing: border-box; }
+    :root { --primary: #8cc63f; --primary-dark: #74a831; --primary-text: #1b3009; --secondary: #e9ecef; --text: #212529; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f4f6f9; color: var(--text); margin: 0; padding: 10px; overflow-x: hidden; }
+
+    /* HEADER ADAPTATIVO */
+    header { background: var(--primary); color: var(--primary-text); padding: 10px 12px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; flex-wrap: nowrap; gap: 8px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .header-brand { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+    .header-brand h1 { margin: 0; font-size: 1rem; color: var(--primary-text); font-weight: 800; letter-spacing: 0.3px; line-height: 1.15; white-space: normal; }
+    .header-brand h4 { margin: 3px 0 0 0; font-size: 0.72rem; color: #333333; font-weight: 600; line-height: 1.15; white-space: normal; }
+    .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+    .header-logo { height: 32px; width: auto; max-width: 80px; object-fit: contain; background: white; padding: 2px 4px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.15); flex-shrink: 0; }
+    .status-badge { padding: 2px 6px; border-radius: 12px; font-weight: bold; font-size: 0.62rem; white-space: nowrap; }
+    .online { background: #28a745; color: white; }
+    .offline { background: #dc3545; color: white; }
+    .draft-badge { background: #ffc107; color: #212529; display: none; }
+
+    @media (min-width: 600px) {
+      header { padding: 12px 15px; }
+      .header-brand h1 { font-size: 1.2rem; }
+      .header-brand h4 { font-size: 0.8rem; }
+      .header-right { flex-direction: row; align-items: center; gap: 10px; }
+      .header-logo { height: 42px; max-width: 120px; padding: 3px 8px; }
+      .status-badge { font-size: 0.75rem; padding: 5px 10px; }
+    }
+    
+    /* Pestañas Principales y Sub-pestañas */
+    .nav-tabs { display: flex; overflow-x: auto; background: white; border-bottom: 3px solid var(--primary); margin-bottom: 12px; border-radius: 6px 6px 0 0; -webkit-overflow-scrolling: touch; }
+    .tab-btn { padding: 10px 12px; border: none; background: none; font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent; white-space: nowrap; font-size: 0.8rem; flex-shrink: 0; color: #555; }
+    .tab-btn.active { border-bottom-color: var(--primary); color: var(--primary-text); background: #f1f8e9; font-weight: bold; }
+    .sub-nav-tabs { display: flex; gap: 6px; margin-bottom: 15px; background: #e9ecef; padding: 4px; border-radius: 6px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .sub-tab-btn { flex: 1; padding: 8px 10px; border: none; background: transparent; font-size: 0.78rem; font-weight: 600; color: #495057; border-radius: 4px; cursor: pointer; white-space: nowrap; }
+    .sub-tab-btn.active { background: #ffffff; color: var(--primary-text); box-shadow: 0 1px 3px rgba(0,0,0,0.12); font-weight: 700; }
+
+    .sub-tab-content { display: none; }
+    .sub-tab-content.active { display: block; }
+    .tab-content { display: none; background: white; padding: 15px; border-radius: 0 0 6px 6px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 15px; }
+    .tab-content.active { display: block; }
+    
+    h2 { color: var(--primary-text); font-size: 1.05rem; border-bottom: 2px solid var(--primary); padding-bottom: 5px; margin-top: 5px; margin-bottom: 15px; }
+    h3 { font-size: 0.9rem; margin-top: 15px; margin-bottom: 8px; color: var(--primary-text); }
+    h4 { font-size: 0.85rem; margin-top: 12px; margin-bottom: 6px; color: var(--primary-text); font-weight: 700; }
+
+    /* ESTRUCTURA Y GRID */
+    .info-block { background: #fafbfc; border: 1px solid #e1e8ed; border-radius: 6px; padding: 12px 15px; margin-bottom: 15px; }
+    .info-block-title { font-size: 0.82rem; font-weight: 700; color: var(--primary-text); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; padding-bottom: 4px; border-bottom: 1px solid #e1e8ed; }
+    .grid-2 { display: grid; grid-template-columns: 1fr; gap: 10px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr; gap: 10px; }
+    .grid-4 { display: grid; grid-template-columns: 1fr; gap: 10px; }
+    @media (min-width: 768px) {
+      .grid-2 { grid-template-columns: repeat(2, 1fr); }
+      .grid-3 { grid-template-columns: repeat(3, 1fr); }
+      .grid-4 { grid-template-columns: repeat(4, 1fr); }
+      .col-span-full { grid-column: 1 / -1; }
+    }
+
+    .form-group { display: flex; flex-direction: column; min-width: 0; width: 100%; }
+    label { font-weight: 600; font-size: 0.78rem; margin-bottom: 4px; color: #333; display: flex; align-items: center; gap: 4px; }
+    input, select, textarea { width: 100%; max-width: 100%; padding: 8px; border: 1px solid #ced4da; border-radius: 4px; font-size: 0.85rem; min-width: 0; background: white; transition: all 0.3s; }
+    input:focus, select:focus, textarea:focus { border-color: var(--primary-dark); outline: none; box-shadow: 0 0 0 3px rgba(140, 198, 63, 0.25); }
+    input[type="date"], input[type="time"] { -webkit-appearance: none; -moz-appearance: none; appearance: none; padding: 6px 6px; min-height: 38px; }
+    input[readonly] { background-color: #e9ecef; cursor: not-allowed; font-weight: bold; color: var(--primary-text); }
+    .input-btn-group { display: flex; gap: 6px; width: 100%; }
+    .input-btn-group input { flex: 1; min-width: 0; }
+    .help-icon { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; background: var(--primary); color: var(--primary-text); font-size: 0.68rem; font-weight: bold; border-radius: 50%; cursor: help; flex-shrink: 0; }
+
+    /* TARJETAS DINÁMICAS */
+    .lugar-card { background: #ffffff; border: 1px solid #dcdcdc; border-left: 5px solid var(--primary); border-radius: 6px; padding: 14px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid #eee; font-weight: bold; color: var(--primary-text); font-size: 0.9rem; }
+    .btn-remove-card { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.75rem; font-weight: bold; }
+    .card-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    @media (min-width: 768px) { .card-grid { grid-template-columns: 1fr 1fr; } }
+
+    .services-grid { display: grid; grid-template-columns: 1fr; gap: 10px; background: #f8f9fa; padding: 12px; border-radius: 6px; border: 1px solid #e9ecef; }
+    @media (min-width: 480px) { .services-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (min-width: 768px) { .services-grid { grid-template-columns: repeat(3, 1fr); } }
+    .services-grid .service-item { display: flex; flex-direction: column; }
+
+    /* TARJETAS COMPACTAS */
+    .service-eval-card, .func-card { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; padding: 12px; margin-bottom: 10px; }
+    .service-eval-header { font-weight: bold; color: var(--primary-text); margin-bottom: 10px; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
+    .func-question { font-weight: 700; font-size: 0.83rem; color: var(--primary-text); margin-bottom: 8px; }
+
+    /* EPIDEMIOLOGÍA */
+    .epi-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px 12px; align-items: center; }
+    .epi-header { font-weight: 700; font-size: 0.75rem; color: var(--primary-text); text-align: center; padding-bottom: 6px; border-bottom: 2px solid #e9ecef; }
+    .epi-label { font-size: 0.8rem; font-weight: 600; color: #444; display: flex; align-items: center; gap: 4px; }
+    .epi-input { text-align: center !important; padding: 8px 4px !important; font-weight: bold; }
+    .epi-total-row { background: #f1f8e9; font-weight: bold; padding: 6px; border-radius: 4px; color: var(--primary-text); }
+    .otro-input-highlight { border: 1.5px solid var(--primary-dark) !important; background-color: #ffffff !important; color: #212529 !important; position: relative; z-index: 10; }
+
+    .table-responsive { overflow-x: auto; margin-bottom: 15px; width: 100%; -webkit-overflow-scrolling: touch; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.78rem; min-width: 500px; }
+    th, td { border: 1px solid #dee2e6; padding: 5px; text-align: left; }
+    th { background: #f1f8e9; font-weight: 600; color: var(--primary-text); }
+    
+    .btn-add { background: var(--primary); color: var(--primary-text); border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer; margin-bottom: 15px; font-size: 0.85rem; font-weight: bold; display: inline-flex; align-items: center; gap: 5px; }
+    .btn-add:hover { background: var(--primary-dark); }
+    .btn-export { background: #17a2b8; color: white; border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: bold; display: inline-flex; align-items: center; gap: 5px; }
+    .btn-export.json { background: #6c757d; }
+
+    .form-actions { display: flex; gap: 10px; margin-top: 15px; }
+    .btn-submit { flex: 2; background: var(--primary); color: var(--primary-text); border: none; padding: 14px; border-radius: 6px; font-size: 0.95rem; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.15); display: block; }
+    .btn-submit:hover { background: var(--primary-dark); }
+    .btn-clear { flex: 1; background: #dc3545; color: white; border: none; padding: 14px; border-radius: 6px; font-size: 0.95rem; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.15); }
+    .btn-clear:hover { background: #c82333; }
+    @media (max-width: 600px) { .form-actions { flex-direction: column-reverse; } }
+    .btn-gps { background: var(--primary); color: var(--primary-text); border: none; padding: 8px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.75rem; white-space: nowrap; flex-shrink: 0; }
+    .code-legend { font-size: 0.75rem; background: #e9ecef; padding: 8px; border-radius: 4px; margin-bottom: 15px; line-height: 1.4; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-brand">
+    <h1>RAIZ Consultores</h1>
+    <h4>Bienestar Colectivo Sostenible</h4>
+  </div>
+
+  <div class="header-right">
+    <img src="https://lh3.googleusercontent.com/d/1xS7R9XaZRU57at1CwBlXCuxY0bssbkpq" alt="RAIZ Consultores" class="header-logo" id="headerLogoImg">
+    <div style="display:flex; gap:6px;">
+      <div id="draftStatus" class="status-badge draft-badge">Guardando...</div>
+      <div id="netStatus" class="status-badge offline">Comprobando...</div>
+    </div>
+  </div>
+</header>
+
+<nav class="nav-tabs">
+  <button class="tab-btn active" onclick="showTab('tab_situacion', this)" type="button">Situación de Salud</button>
+  <button class="tab-btn" onclick="showTab('tab_instalaciones', this)" type="button">Instalaciones de Salud</button>
+  <button class="tab-btn" onclick="showTab('anexo3', this)" type="button">Vigilancia Epidemiológica</button>
+  <button class="tab-btn" onclick="showTab('anexo4', this)" type="button">Suministro de agua</button>
+  <button class="tab-btn" onclick="showTab('anexo5', this)" type="button">Evaluación rápida de Albergues</button>
+  <button class="tab-btn" onclick="showTab('tab_eval_sanitaria_albergues', this)" type="button">Evaluación Sanitaria de Albergues</button>
+  <button class="tab-btn" onclick="showTab('anexo6', this)" type="button">Sistema de logística</button>
+  <button class="tab-btn" onclick="showTab('pendientes', this)" type="button">Registros Guardados</button>
+</nav>
+
+<form id="edanMasterForm" onsubmit="event.preventDefault(); return false;">
+
+  <!-- PESTAÑA PRINCIPAL 1: EVALUACIÓN DE LA SITUACIÓN DE SALUD -->
+  <div id="tab_situacion" class="tab-content active">
+    <h2>Evaluación de la situación de salud</h2>
+    
+    <div class="sub-nav-tabs">
+      <button class="sub-tab-btn active" onclick="showSubTab('part_a', this)" type="button">Parte A: Información general</button>
+      <button class="sub-tab-btn" onclick="showSubTab('part_b', this)" type="button">Parte B: Efectos en la salud</button>
+      <button class="sub-tab-btn" onclick="showSubTab('part_c', this)" type="button">Parte C: Daños en la red de servicios de salud</button>
+    </div>
+
+    <div id="part_a" class="sub-tab-content active">
+      <h3>Parte A. Información general</h3>
+      
+      <div class="info-block" style="border-left: 5px solid var(--primary-dark);">
+        <div class="info-block-title">Control de Expediente (Continuidad de Informe)</div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label>Modo de Diligenciamiento:</label>
+            <select id="modo_expediente_select" onchange="toggleModoExpediente(this.value)">
+              <option value="nuevo">Crear Nuevo Expediente para un Sitio/Evento</option>
+              <option value="existente">Continuar/Actualizar Expediente Existente</option>
+            </select>
+          </div>
+          <div class="form-group" id="block_expediente_existente" style="display:none;">
+            <label>Seleccione el Expediente a Continuar:</label>
+            <select name="expediente_id_vinculado" id="select_expediente_existente" onchange="cargarExpedienteVinculado(this.value)">
+              <option value="">Cargando expedientes guardados...</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-block">
+        <div class="info-block-title">1. Control del Informe y Evento</div>
+        <div class="grid-4" style="margin-bottom: 10px;">
+          <div class="form-group"><label>Número de Informe:</label><input type="text" id="a1_informe_no" name="a1_informe_no" placeholder="Ej. INF-001"></div>
+          <div class="form-group">
+            <label>Elaborado por (Nombre):</label>
+            <input type="text" id="a1_elaborado_por_nombre" name="a1_elaborado_por_nombre" placeholder="Nombre del evaluador">
+          </div>
+          <div class="form-group">
+            <label>Cargo:</label>
+            <input type="text" id="a1_elaborado_por_cargo" name="a1_elaborado_por_cargo" placeholder="Cargo del evaluador">
+          </div>
+          <div class="form-group">
+            <label>Tipo de Evento:</label>
+            <select name="a1_evento_select" id="tipo_evento_select" onchange="toggleOtroEvento()">
+              <option value="">Seleccione...</option>
+              <option value="SISMO">SISMO</option>
+              <option value="Inundación">Inundación</option>
+              <option value="Vendaval">Vendaval</option>
+              <option value="Otro">Otro</option>
+            </select>
+            <input type="text" name="a1_evento_otro" id="tipo_evento_otro" class="otro-input-highlight" placeholder="¿Cuál evento? Especifique aquí" style="display:none; margin-top:5px;">
+          </div>
+        </div>
+
+        <div class="grid-4">
+          <div class="form-group"><label>Fecha del Evento:</label><input type="date" id="a1_fecha_evento" name="a1_fecha_evento" onchange="calcularDias()"></div>
+          <div class="form-group"><label>Fecha de Visita:</label><input type="date" id="a1_fecha_visita" name="a1_fecha_visita" onchange="calcularDias()"></div>
+          <div class="form-group"><label>Hora de Visita:</label><input type="time" name="a1_hora_visita"></div>
+          <div class="form-group"><label>Días transcurridos:</label><input type="number" id="a1_dias_despues" name="a1_dias_despues" readonly placeholder="Auto-calculado"></div>
+        </div>
+      </div>
+
+      <div class="info-block">
+        <div class="info-block-title">2. Ubicación Geográfica y Coordenadas</div>
+        <div class="grid-3" style="margin-bottom: 10px;">
+          <div class="form-group"><label>País:</label><input type="text" name="a1_pais" value="Colombia" readonly></div>
+          <div class="form-group">
+            <label>Departamento:</label>
+            <select name="a1_depto_select" id="depto_select" onchange="toggleOtroDepto()">
+              <option value="Chocó">Chocó</option>
+              <option value="Valle del Cauca">Valle del Cauca</option>
+              <option value="Otro">Otro</option>
+            </select>
+            <input type="text" name="a1_depto_otro" id="depto_otro" class="otro-input-highlight" placeholder="¿Cuál departamento?" style="display:none; margin-top:5px;">
+          </div>
+          <div class="form-group"><label>Municipio:</label><input type="text" id="a1_municipio" name="a1_municipio" placeholder="Nombre del municipio"></div>
+        </div>
+
+        <div class="form-group">
+          <label>Coordenadas GPS (Latitud, Longitud):</label>
+          <div class="input-btn-group">
+            <input type="text" id="a1_gps" name="a1_gps" placeholder="Ejemplo: 5.123456, -76.654321" readonly>
+            <button type="button" class="btn-gps" onclick="obtenerGPS('a1_gps')">📍 Capturar GPS</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-block">
+        <div class="info-block-title">3. Resumen de Población Albergada o Evacuada</div>
+        <div class="grid-3">
+          <div class="form-group">
+            <label>¿Población albergada o evacuada?:</label>
+            <select name="a1_pob_albergada_flag">
+              <option value="No">No</option>
+              <option value="Si">Sí</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Número de Albergues:</label><input type="number" name="a1_num_albergues" min="0" value="0"></div>
+          <div class="form-group"><label>Población Aproximada Albergada:</label><input type="number" name="a1_pob_albergada_aprox" min="0" value="0"></div>
+        </div>
+      </div>
+
+      <h3>Descripción General de Daños por Lugar</h3>
+      <div id="contenedorLugaresCards"></div>
+      <button type="button" class="btn-add" onclick="agregarLugarCard()">+ Agregar Lugar de Afectación</button>
+    </div>
+
+    <div id="part_b" class="sub-tab-content">
+      <h3>Parte B. Efectos en la salud</h3>
+      <p style="font-size:0.83rem; color:#555; margin-bottom:12px;">Los lugares de afectación se obtienen automáticamente de los registrados en la Parte A.</p>
+      
+      <div id="contenedorSaludCards"></div>
+      <button type="button" class="btn-add" onclick="agregarSaludCard()">+ Agregar Registro de Salud</button>
+    </div>
+
+    <div id="part_c" class="sub-tab-content">
+      <h3>Parte C. Daños en la red de servicios de salud</h3>
+      <h4>1. Inventario de Instituciones de la Red de Servicios de Salud</h4>
+      <div id="contenedorRedCards"></div>
+      <button type="button" class="btn-add" onclick="agregarRedCard()">+ Agregar Institución a la Red de Servicios de Salud</button>
+
+      <h4>2. Funcionalidad Operativa de la Red de Servicios de Salud</h4>
+      <div id="contenedorFuncionalidadRed">
+        <script>
+          const preguntasRed = [
+            { id: "f1", q: "¿Existen otras entidades trabajando en salud en las zonas afectadas?" },
+            { id: "f2", q: "¿Funciona el sistema de coordinación entre la red de servicios de salud?" },
+            { id: "f3", q: "¿Se encuentran comunicadas las instituciones de la red de servicios de salud?" },
+            { id: "f4", q: "¿Hay flujo de información entre la red de servicios de salud?" },
+            { id: "f5", q: "¿Funciona el sistema de referencia y contrarreferencia de la red de servicios de salud?" },
+            { id: "f6", q: "¿Funciona el sistema de atención prehospitalaria en la red de servicios de salud?" },
+            { id: "f7", q: "¿Funciona el sistema de distribución de medicamentos/almacén de la red de servicios de salud?" },
+            { id: "f8", q: "¿Se requieren suministros médicos/farmacéuticos para emergencias?" },
+            { id: "f9", q: "¿Se han evaluado las necesidades logísticas de la red de servicios de salud?" },
+            { id: "f10", q: "¿Existen necesidades para el manejo de cadáveres en la red de salud?" }
+          ];
+
+          document.write(preguntasRed.map((p, idx) => `
+            <div class="func-card">
+              <div class="func-question">${idx + 1}. ${p.q}</div>
+              <input type="hidden" name="a1c_preg_nombre[]" value="${p.q}">
+              <div class="grid-4">
+                <div class="form-group">
+                  <label>Estado:</label>
+                  <select name="a1c_preg_resp[]">
+                    <option value="">Seleccione...</option>
+                    <option value="Sí">Sí</option>
+                    <option value="No">No</option>
+                  </select>
+                </div>
+                <div class="form-group"><label>Acciones / Recursos:</label><input type="text" name="a1c_preg_acciones[]" placeholder="Recursos o acciones"></div>
+                <div class="form-group"><label>Dificultades:</label><input type="text" name="a1c_preg_dificultades[]" placeholder="Obstáculos hallados"></div>
+                <div class="form-group"><label>Prioridades / Observaciones:</label><input type="text" name="a1c_preg_prioridades[]" placeholder="Necesidades prioritarias"></div>
+              </div>
+            </div>
+          `).join(''));
+        </script>
+        <div class="form-group col-span-full" style="margin-top:15px; margin-bottom:20px;">
+          <label>Observaciones Adicionales sobre la Red de Servicios de Salud:</label>
+          <textarea name="a1c_obs_red_adicionales" rows="3" placeholder="Comentarios consolidados..."></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PESTAÑA PRINCIPAL 2: INSTALACIONES DE SALUD -->
+  <div id="tab_instalaciones" class="tab-content">
+    <h2>Evaluación Rápida de Daños en Instalaciones de Salud</h2>
+    <div class="info-block">
+      <div class="info-block-title">Datos de Control de la Instalación de Salud</div>
+      <div class="grid-3" style="margin-bottom: 10px;">
+        <div class="form-group"><label>Nombre de la Institución:</label><input type="text" name="a2_institucion" placeholder="Ej. Hospital San José"></div>
+        <div class="form-group">
+          <label>Tipo de Instalación:</label>
+          <select name="a2_tipo_instalacion">
+            <option value="">Seleccione...</option>
+            <option value="Hospital Nivel 1">Hospital Nivel 1</option>
+            <option value="Hospital Nivel 2">Hospital Nivel 2</option>
+            <option value="Hospital Nivel 3">Hospital Nivel 3</option>
+            <option value="Centro de Salud">Centro de Salud</option>
+            <option value="Puesto de Salud">Puesto de Salud</option>
+            <option value="Clínica Privada">Clínica Privada</option>
+            <option value="Otro">Otro</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Municipio / Sector:</label><input type="text" name="a2_municipio_ubicacion"></div>
+      </div>
+
+      <div class="grid-4" style="margin-bottom: 10px;">
+        <div class="form-group"><label>Nombre del Evaluador:</label><input type="text" name="a2_evaluador_nombre"></div>
+        <div class="form-group"><label>Cargo:</label><input type="text" name="a2_evaluador_cargo"></div>
+        <div class="form-group"><label>Fecha:</label><input type="date" name="a2_fecha_eval"></div>
+        <div class="form-group"><label>Hora:</label><input type="time" name="a2_hora_eval"></div>
+      </div>
+
+      <div class="grid-3">
+        <div class="form-group col-span-full">
+          <label>Coordenadas GPS de la Instalación:</label>
+          <div class="input-btn-group">
+            <input type="text" id="a2_gps" name="a2_gps" readonly>
+            <button type="button" class="btn-gps" onclick="obtenerGPS('a2_gps')">📍 Capturar GPS</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-2" style="margin-top: 10px;">
+        <div class="form-group"><label>Camas Pre-evento:</label><input type="number" name="a2_camas_pre" min="0"></div>
+        <div class="form-group"><label>Camas Disponibles Post-evento:</label><input type="number" name="a2_camas_post" min="0"></div>
+      </div>
+    </div>
+
+    <h3>Matriz de Evaluación Rápida de Servicios</h3>
+    <div id="a2_servicios_container">
+      <script>
+        const serviciosA2Completo = [
+          { cat: "Servicios Asistenciales / Clínicos", nombre: "Medicina general" },
+          { cat: "Servicios Asistenciales / Clínicos", nombre: "Cirugía general" },
+          { cat: "Servicios Asistenciales / Clínicos", nombre: "Gineco-obstetricia" },
+          { cat: "Servicios Asistenciales / Clínicos", nombre: "Pediatría" },
+          { cat: "Servicios Asistenciales / Clínicos", nombre: "Sala de cirugía" },
+          { cat: "Servicios Asistenciales / Clínicos", nombre: "Consulta ambulatoria" },
+          { cat: "Servicios Asistenciales / Clínicos", nombre: "Emergencias" },
+          { cat: "Servicios Asistenciales / Clínicos", nombre: "Farmacia" },
+          { cat: "Servicios Asistenciales / Clínicos", nombre: "Rayos X" },
+          { cat: "Servicios Asistenciales / Clínicos", nombre: "Laboratorio" },
+          { cat: "Servicios Asistenciales / Clínicos", nombre: "Fisioterapia" },
+          { cat: "Servicios de Apoyo", nombre: "Lavandería" },
+          { cat: "Servicios de Apoyo", nombre: "Central-esterilización" },
+          { cat: "Servicios de Apoyo", nombre: "Nutrición" },
+          { cat: "Servicios de Apoyo", nombre: "Transportes (ambulancia)" },
+          { cat: "Servicios de Apoyo", nombre: "Morgues" },
+          { cat: "Servicios Básicos", nombre: "Electricidad", naPersonal: true, naSuministros: true },
+          { cat: "Servicios Básicos", nombre: "Suministro de agua", naPersonal: true, naSuministros: true },
+          { cat: "Comunicación", nombre: "Teléfonos", naPersonal: true, naSuministros: true },
+          { cat: "Comunicación", nombre: "Radioteléfono" }
+        ];
+
+        const opcionesA2 = `
+          <option value="3">3 - Servicio Normal</option>
+          <option value="2">2 - Servicio Limitado</option>
+          <option value="1">1 - Solo Emergencias</option>
+          <option value="0">0 - Sin Servicio</option>
+          <option value="X">X - No Disponible</option>
+        `;
+
+        let ultimaCat = "";
+        document.write(serviciosA2Completo.map((s, index) => {
+          let catHeader = "";
+          if (s.cat !== ultimaCat) {
+            ultimaCat = s.cat;
+            catHeader = `<div class="info-block-title" style="margin-top:20px; margin-bottom:10px; background:#e1e8ed; padding:6px 10px; border-radius:4px;">Categoría: ${s.cat}</div>`;
+          }
+          const selectPersonal = s.naPersonal ? `<select disabled><option value="N/A">N/A</option></select><input type="hidden" name="a2_personal[]" value="N/A">` : `<select name="a2_personal[]">${opcionesA2}</select>`;
+          const selectSuministros = s.naSuministros ? `<select disabled><option value="N/A">N/A</option></select><input type="hidden" name="a2_suministros[]" value="N/A">` : `<select name="a2_suministros[]">${opcionesA2}</select>`;
+
+          return `
+            ${catHeader}
+            <div class="service-eval-card">
+              <div class="service-eval-header">${index + 1}. ${s.nombre}</div>
+              <input type="hidden" name="a2_servicio_nombre[]" value="${s.nombre}">
+              <div class="grid-3">
+                <div class="form-group"><label>Estado:</label><select name="a2_estado[]">${opcionesA2}</select></div>
+                <div class="form-group"><label>Recursos Humanos:</label>${selectPersonal}</div>
+                <div class="form-group"><label>Suministros:</label>${selectSuministros}</div>
+                <div class="form-group"><label>Equipos:</label><select name="a2_equipo[]">${opcionesA2}</select></div>
+                <div class="form-group"><label>Infraestructura:</label><select name="a2_infraestructura[]">${opcionesA2}</select></div>
+                <div class="form-group"><label>Observaciones:</label><input type="text" name="a2_obs[]"></div>
+              </div>
+            </div>
+          `;
+        }).join(''));
+      </script>
+    </div>
+  </div>
+
+  <!-- PESTAÑA PRINCIPAL 3: VIGILANCIA EPIDEMIOLÓGICA -->
+  <div id="anexo3" class="tab-content">
+    <h2>Vigilancia Epidemiológica</h2>
+    <div class="info-block">
+      <div class="info-block-title">Datos del hospital / instalación de salud / albergue</div>
+      <div class="grid-3" style="margin-bottom: 10px;">
+        <div class="form-group"><label>Nombre de la Instalación:</label><input type="text" name="a3_hospital_nombre"></div>
+        <div class="form-group"><label>Ubicación / Lugar:</label><input type="text" name="a3_hospital_ubicacion"></div>
+        <div class="form-group">
+          <label>GPS:</label>
+          <div class="input-btn-group"><input type="text" id="a3_gps" name="a3_gps" readonly><button type="button" class="btn-gps" onclick="obtenerGPS('a3_gps')">📍 Capturar GPS</button></div>
+        </div>
+      </div>
+      <div class="grid-3">
+        <div class="form-group"><label>Elaborado por:</label><input type="text" name="a3_elaborado_por_nombre"></div>
+        <div class="form-group"><label>Cargo:</label><input type="text" name="a3_elaborado_por_cargo"></div>
+        <div class="form-group"><label>Fecha de Reporte:</label><input type="date" name="a3_fecha_reporte"></div>
+      </div>
+    </div>
+    <div id="contenedorEpiCards"></div>
+    <button type="button" class="btn-add" onclick="agregarEpiCard()">+ Agregar Condición Sintomática Adicional</button>
+  </div>
+
+  <!-- PESTAÑA PRINCIPAL 4: SUMINISTRO DE AGUA -->
+  <div id="anexo4" class="tab-content">
+    <h2>Evaluación del suministro y calidad del agua</h2>
+    <div class="info-block">
+      <div class="info-block-title">Datos del Evaluador</div>
+      <div class="grid-3">
+        <div class="form-group"><label>Elaborado por:</label><input type="text" name="a4_elaborado_por_nombre"></div>
+        <div class="form-group"><label>Cargo:</label><input type="text" name="a4_elaborado_por_cargo"></div>
+        <div class="form-group"><label>Fecha:</label><input type="date" name="a4_fecha_eval"></div>
+      </div>
+    </div>
+    <h3>A. Evaluación de los sistemas de agua (general)</h3>
+    <div id="contenedorAguaGeneralCards"></div>
+    <button type="button" class="btn-add" onclick="agregarAguaGeneralCard()">+ Agregar Sistema de Agua por Lugar</button>
+
+    <div class="info-block" style="border-left: 5px solid var(--primary-dark);">
+      <div class="info-block-title">Capacidad Técnica de Análisis</div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label>¿Cuenta con equipos e insumos?:</label>
+          <select name="a4_equipos_cientificos_flag">
+            <option value="">Seleccione...</option>
+            <option value="Sí">Sí</option>
+            <option value="Parcial">Parcial</option>
+            <option value="No">No</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Detalle de Equipos:</label><input type="text" name="a4_equipos_detalles"></div>
+      </div>
+    </div>
+    <h3>B. Control de la calidad de agua</h3>
+    <div id="contenedorAguaCalidadCards"></div>
+    <button type="button" class="btn-add" onclick="agregarAguaCalidadCard()">+ Agregar Muestra / Análisis de Agua</button>
+  </div>
+
+  <!-- PESTAÑA PRINCIPAL 5: ALBERGUES RÁPIDA -->
+  <div id="anexo5" class="tab-content">
+    <h2>Evaluación rápida de Albergues</h2>
+    <div class="sub-nav-tabs">
+      <button class="sub-tab-btn active" onclick="showSubTab('albergue_part_a', this)" type="button">Parte A: Identificación de albergues</button>
+      <button class="sub-tab-btn" onclick="showSubTab('albergue_part_b', this)" type="button">Parte B: Identificación de pacientes</button>
+    </div>
+    <div class="info-block">
+      <div class="info-block-title">Datos del Evaluador</div>
+      <div class="grid-3">
+        <div class="form-group"><label>Elaborado por:</label><input type="text" name="a5_elaborado_por_nombre"></div>
+        <div class="form-group"><label>Cargo:</label><input type="text" name="a5_elaborado_por_cargo"></div>
+        <div class="form-group"><label>Fecha:</label><input type="date" name="a5_fecha_eval"></div>
+      </div>
+    </div>
+
+    <div id="albergue_part_a" class="sub-tab-content active">
+      <h3>A. Identificación de los albergues (consolidado)</h3>
+      <div id="contenedorAlberguesGeneralCards"></div>
+      <button type="button" class="btn-add" onclick="agregarAlbergueGeneralCard()">+ Agregar Albergue</button>
+    </div>
+
+    <div id="albergue_part_b" class="sub-tab-content">
+      <h3>B. Identificación de los pacientes</h3>
+      <div id="contenedorAlberguesPacientesCards"></div>
+      <button type="button" class="btn-add" onclick="agregarAlberguePacienteCard()">+ Agregar Paciente</button>
+    </div>
+  </div>
+
+  <!-- PESTAÑA PRINCIPAL 6: EVALUACIÓN SANITARIA ALBERGUES -->
+  <div id="tab_eval_sanitaria_albergues" class="tab-content">
+    <h2>Evaluación Sanitaria de Albergues</h2>
+    <div class="info-block">
+      <div class="info-block-title">1. Información General del Albergue</div>
+      <div class="grid-3">
+        <div class="form-group"><label>Nombre del Albergue:</label><input type="text" name="a7_nombre_albergue"></div>
+        <div class="form-group"><label>Ubicación:</label><input type="text" name="a7_ubicacion"></div>
+        <div class="form-group"><label>GPS:</label><div class="input-btn-group"><input type="text" id="a7_gps" name="a7_gps" readonly><button type="button" class="btn-gps" onclick="obtenerGPS('a7_gps')">📍 GPS</button></div></div>
+      </div>
+      <div class="grid-3" style="margin-top:10px;">
+        <div class="form-group"><label>Tamaño Total ($m^2$):</label><input type="number" id="a7_area_total" name="a7_area_total" onchange="calcularAreaPorPersona()"></div>
+        <div class="form-group"><label>Responsable:</label><input type="text" name="a7_responsable_nombre"></div>
+        <div class="form-group"><label>Teléfono:</label><input type="text" name="a7_responsable_telefono"></div>
+      </div>
+      <div class="form-group" style="margin-top:10px;">
+        <label>Área por Persona ($m^2$):</label><input type="text" id="a7_area_por_persona" name="a7_area_por_persona" readonly>
+      </div>
+    </div>
+    <div class="info-block">
+      <div class="info-block-title">2. Población</div>
+      <div class="grid-3">
+        <div class="form-group"><label>Total Población:</label><input type="number" id="a7_pob_total_sanitaria" name="a7_pob_total_sanitaria" value="0" onchange="calcularAreaPorPersona()"></div>
+        <div class="form-group"><label>Hombres:</label><input type="number" name="a7_total_hombres" value="0"></div>
+        <div class="form-group"><label>Mujeres:</label><input type="number" name="a7_total_mujeres" value="0"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PESTAÑA PRINCIPAL 7: LOGÍSTICA -->
+  <div id="anexo6" class="tab-content">
+    <h2>Verificación del sistema de logística</h2>
+    <div class="info-block">
+      <div class="info-block-title">Datos de la Instalación</div>
+      <div class="grid-3">
+        <div class="form-group"><label>Nombre Sede:</label><input type="text" name="a6_instalacion_nombre"></div>
+        <div class="form-group"><label>Ubicación:</label><input type="text" name="a6_instalacion_ubicacion"></div>
+        <div class="form-group"><label>GPS:</label><div class="input-btn-group"><input type="text" id="a6_gps" name="a6_gps" readonly><button type="button" class="btn-gps" onclick="obtenerGPS('a6_gps')">📍 GPS</button></div></div>
+      </div>
+    </div>
+    <div id="contenedorLogisticaCards">
+      <script>
+        const itemsLogistica = [
+          { funcion: "Administración de la cadena de suministros", desc: "Cadena de suministros y recursos humanos" },
+          { funcion: "Adquisición y compras", desc: "Selección, adquisición, subcontratación" },
+          { funcion: "Almacenamiento e inventario", desc: "Manejo de almacenes" },
+          { funcion: "Transportes", desc: "Medios de transporte y gerencia de flota" }
+        ];
+        document.write(itemsLogistica.map((item, index) => `
+          <div class="func-card">
+            <div class="func-question">${index + 1}. ${item.desc}</div>
+            <input type="hidden" name="a6_funcion_nombre[]" value="${item.funcion}">
+            <input type="hidden" name="a6_funcion_desc[]" value="${item.desc}">
+            <div class="grid-3">
+              <div class="form-group"><label>¿Se realiza?:</label><select name="a6_realiza[]"><option value="">Seleccione...</option><option value="Sí">Sí</option><option value="No">No</option></select></div>
+              <div class="form-group"><label>Responsable:</label><input type="text" name="a6_resp[]"></div>
+              <div class="form-group"><label>Observaciones:</label><input type="text" name="a6_obs[]"></div>
+            </div>
+          </div>
+        `).join(''));
+      </script>
+    </div>
+  </div>
+
+  <!-- PESTAÑA PRINCIPAL 8: REGISTROS GUARDADOS -->
+  <div id="pendientes" class="tab-content">
+    <h2>Expedientes EDAN Guardados y Respaldo</h2>
+    <div style="margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+      <button type="button" class="btn-export" onclick="exportarCSV()">📥 Exportar Respaldo CSV (Excel)</button>
+      <button type="button" class="btn-export json" onclick="exportarJSON()">📥 Exportar Respaldo JSON</button>
+    </div>
+    <div class="table-responsive">
+      <table>
+        <thead><tr><th>ID</th><th>Informe / Evento</th><th>Municipio</th><th>Fecha</th><th>Estado</th></tr></thead>
+        <tbody id="tablaPendientesBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="form-actions" id="actionButtonsContainer">
+    <button type="button" class="btn-clear" onclick="confirmarLimpieza()">🧹 Limpiar Formulario</button>
+    <button type="button" id="btnGuardarMaestro" class="btn-submit" onclick="validarYGuardar()">💾 Guardar Formulario EDAN</button>
+  </div>
+</form>
+
+<script>
+  let lugarCardIndex = 0;
+  let saludCardIndex = 0;
+  let redCardIndex = 0;
+  let epiCardIndex = 0;
+  let aguaGenCardIndex = 0;
+  let aguaCalCardIndex = 0;
+  let albergueGenCardIndex = 0;
+  let alberguePacCardIndex = 0;
+  let currentExpedienteId = null;
+  let hayCambiosSinGuardar = false;
+
+  /* NAVEGACIÓN TOTALMENTE RESILIENTE DE PESTAÑAS */
+  function showTab(tabId, btnElement) {
+    if (typeof tabId !== 'string') {
+      let temp = tabId; tabId = btnElement; btnElement = temp;
+    }
+    if (!tabId) return;
+
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.nav-tabs .tab-btn').forEach(el => el.classList.remove('active'));
+    
+    const target = document.getElementById(tabId);
+    if (target) target.classList.add('active');
+    
+    if (btnElement && btnElement.classList) {
+      btnElement.classList.add('active');
+    } else {
+      const btn = document.querySelector(`.nav-tabs .tab-btn[onclick*="${tabId}"]`);
+      if (btn) btn.classList.add('active');
+    }
+    
+    const actionBtns = document.getElementById('actionButtonsContainer');
+    if(tabId === 'pendientes') {
+      renderPendientes();
+      if(actionBtns) actionBtns.style.display = 'none';
+    } else {
+      if(actionBtns) actionBtns.style.display = 'flex';
+    }
+  }
+
+  function showSubTab(subTabId, btnElement) {
+    if (typeof subTabId !== 'string') {
+      let temp = subTabId; subTabId = btnElement; btnElement = temp;
+    }
+    const currentTab = document.querySelector('.tab-content.active');
+    if (!currentTab) return;
+
+    currentTab.querySelectorAll('.sub-tab-content').forEach(el => el.classList.remove('active'));
+    currentTab.querySelectorAll('.sub-nav-tabs .sub-tab-btn').forEach(el => el.classList.remove('active'));
+    
+    const targetSub = document.getElementById(subTabId);
+    if (targetSub) targetSub.classList.add('active');
+    
+    if (btnElement && btnElement.classList) {
+      btnElement.classList.add('active');
+    } else {
+      const btn = currentTab.querySelector(`.sub-nav-tabs .sub-tab-btn[onclick*="${subTabId}"]`);
+      if (btn) btn.classList.add('active');
+    }
+
+    if (subTabId === 'part_b') actualizarOpcionesLugaresParteB();
+    if (subTabId === 'albergue_part_b') actualizarOpcionesAlberguesParteB();
+  }
+
+  /* DETECCIÓN DE CAMBIOS Y BORRADOR */
+  document.getElementById('edanMasterForm').addEventListener('input', () => { hayCambiosSinGuardar = true; });
+  document.getElementById('edanMasterForm').addEventListener('change', () => { hayCambiosSinGuardar = true; });
+
+  function confirmarLimpieza() {
+    if(confirm("🚨 ¿Seguro que desea limpiar la pantalla? Los expedientes guardados previamente no se borrarán.")) {
+      localStorage.removeItem('edan_draft_v2');
+      hayCambiosSinGuardar = false;
+      location.reload(); 
+    }
+  }
+
+  function calcularAreaPorPersona() {
+    const areaInput = document.getElementById('a7_area_total');
+    const pobInput = document.getElementById('a7_pob_total_sanitaria');
+    const resultadoInput = document.getElementById('a7_area_por_persona');
+    if (areaInput && pobInput && resultadoInput) {
+      const area = parseFloat(areaInput.value) || 0;
+      const pob = parseInt(pobInput.value) || 0;
+      resultadoInput.value = (area > 0 && pob > 0) ? `${(area / pob).toFixed(2)} m² por persona` : '';
+    }
+  }
+
+  function obtenerLugaresParteA() {
+    const lugares = [];
+    document.querySelectorAll('input[name="a1a_lugar[]"]').forEach(input => {
+      const val = input.value.trim(); if (val && !lugares.includes(val)) lugares.push(val);
+    });
+    return lugares;
+  }
+
+  function actualizarOpcionesLugaresParteB() {
+    const lugaresParteA = obtenerLugaresParteA();
+    document.querySelectorAll('.select-lugar-parte-b').forEach(select => {
+      const valorPrevio = select.value;
+      let html = '<option value="">-- Seleccione un lugar de Parte A --</option>';
+      lugaresParteA.forEach(lugar => html += `<option value="${lugar}">${lugar}</option>`);
+      html += '<option value="Otro">Otro lugar...</option>';
+      select.innerHTML = html;
+      if (valorPrevio && (lugaresParteA.includes(valorPrevio) || valorPrevio === 'Otro')) select.value = valorPrevio;
+    });
+  }
+
+  function obtenerAlberguesParteA() {
+    const albergues = [];
+    document.querySelectorAll('input[name="a5a_nombre_albergue[]"]').forEach(input => {
+      const val = input.value.trim(); if (val && !albergues.includes(val)) albergues.push(val);
+    });
+    return albergues;
+  }
+
+  function actualizarOpcionesAlberguesParteB() {
+    const alberguesParteA = obtenerAlberguesParteA();
+    document.querySelectorAll('.select-albergue-parte-b').forEach(select => {
+      const valorPrevio = select.value;
+      let html = '<option value="">-- Seleccione un albergue de Parte A --</option>';
+      alberguesParteA.forEach(alb => html += `<option value="${alb}">${alb}</option>`);
+      html += '<option value="Otro">Otro albergue / institución...</option>';
+      select.innerHTML = html;
+      if (valorPrevio && (alberguesParteA.includes(valorPrevio) || valorPrevio === 'Otro')) select.value = valorPrevio;
+    });
+  }
+
+  function toggleModoExpediente(modo) {
+    const blockExistente = document.getElementById('block_expediente_existente');
+    if (modo === 'existente') { blockExistente.style.display = 'flex'; cargarExpedientesSelect(); } 
+    else { blockExistente.style.display = 'none'; currentExpedienteId = null; }
+  }
+
+  async function cargarExpedientesSelect() {
+    if (!db) return;
+    const select = document.getElementById('select_expediente_existente');
+    const expedientes = await db.expedientes.toArray();
+    if (expedientes.length === 0) { select.innerHTML = '<option value="">No hay expedientes guardados</option>'; return; }
+    select.innerHTML = '<option value="">-- Seleccione un expediente existente --</option>' + 
+      expedientes.map(exp => `<option value="${exp.id}">#${exp.id} - ${exp.a1_informe_no || 'S/N'}</option>`).join('');
+  }
+
+  async function cargarExpedienteVinculado(id) {
+    if (!id || !db) return;
+    currentExpedienteId = parseInt(id);
+    const exp = await db.expedientes.get(currentExpedienteId);
+    if (!exp) return;
+    if (exp.a1_informe_no) document.getElementById('a1_informe_no').value = exp.a1_informe_no;
+    if (exp.a1_elaborado_por_nombre) document.getElementById('a1_elaborado_por_nombre').value = exp.a1_elaborado_por_nombre;
+    if (exp.a1_municipio) document.getElementById('a1_municipio').value = exp.a1_municipio;
+    alert(`Expediente #${id} cargado correctamente.`);
+  }
+
+  /* CREACIÓN REAL Y COMPLETA DE TARJETAS DINÁMICAS */
+  function agregarLugarCard() {
+    lugarCardIndex++;
+    const container = document.getElementById('contenedorLugaresCards');
+    if (!container) return;
+    const cardDiv = document.createElement('div');
+    cardDiv.className = 'lugar-card'; cardDiv.id = `lugar_card_${lugarCardIndex}`;
+    cardDiv.innerHTML = `
+      <div class="card-header">
+        <span>Lugar de Afectación #${lugarCardIndex}</span>
+        <button type="button" class="btn-remove-card" onclick="eliminarLugarCard(${lugarCardIndex})">Eliminar</button>
+      </div>
+      <div class="card-grid">
+        <div class="form-group"><label>Lugar:</label><input type="text" name="a1a_lugar[]" placeholder="Ej. Barrio El Jardín" oninput="actualizarOpcionesLugaresParteB()"></div>
+        <div class="form-group"><label>Población Total:</label><input type="number" name="a1a_poblacion[]" min="0"></div>
+        <div class="form-group col-span-full"><label>Observaciones:</label><input type="text" name="a1a_obs[]"></div>
+      </div>`;
+    container.appendChild(cardDiv);
+    actualizarOpcionesLugaresParteB();
+  }
+  function eliminarLugarCard(index) { const c = document.getElementById(`lugar_card_${index}`); if(c) c.remove(); actualizarOpcionesLugaresParteB(); }
+
+  function agregarSaludCard() {
+    saludCardIndex++;
+    const container = document.getElementById('contenedorSaludCards');
+    if (!container) return;
+    const cardDiv = document.createElement('div');
+    cardDiv.className = 'lugar-card'; cardDiv.id = `salud_card_${saludCardIndex}`;
+    cardDiv.innerHTML = `
+      <div class="card-header"><span>Registro de Salud #${saludCardIndex}</span><button type="button" class="btn-remove-card" onclick="eliminarSaludCard(${saludCardIndex})">Eliminar</button></div>
+      <div class="card-grid">
+        <div class="form-group col-span-full"><label>Lugar:</label><select name="a1b_lugar[]" class="select-lugar-parte-b"></select></div>
+        <div class="form-group"><label>Heridos Locales:</label><input type="number" name="a1b_heridos_local[]" value="0"></div>
+        <div class="form-group"><label>Fallecidos:</label><input type="number" name="a1b_muertos[]" value="0"></div>
+      </div>`;
+    container.appendChild(cardDiv);
+    actualizarOpcionesLugaresParteB();
+  }
+  function eliminarSaludCard(index) { const c = document.getElementById(`salud_card_${index}`); if(c) c.remove(); }
+
+  function agregarRedCard() {
+    redCardIndex++;
+    const container = document.getElementById('contenedorRedCards');
+    if (!container) return;
+    const cardDiv = document.createElement('div');
+    cardDiv.className = 'lugar-card'; cardDiv.id = `red_card_${redCardIndex}`;
+    cardDiv.innerHTML = `
+      <div class="card-header"><span>Institución de Salud #${redCardIndex}</span><button type="button" class="btn-remove-card" onclick="eliminarRedCard(${redCardIndex})">Eliminar</button></div>
+      <div class="card-grid">
+        <div class="form-group"><label>Nombre Institución:</label><input type="text" name="a1c_inst_nombre[]" placeholder="Ej. Hospital San José"></div>
+        <div class="form-group"><label>Funcionamiento:</label><select name="a1c_funcionamiento[]"><option value="Total">Total</option><option value="Parcial">Parcial</option><option value="Inoperativo">Inoperativo</option></select></div>
+      </div>`;
+    container.appendChild(cardDiv);
+  }
+  function eliminarRedCard(index) { const c = document.getElementById(`red_card_${index}`); if(c) c.remove(); }
+
+  function agregarEpiCard(sintoma = '', nota = '') {
+    epiCardIndex++;
+    const container = document.getElementById('contenedorEpiCards');
+    if (!container) return;
+    const cardDiv = document.createElement('div');
+    cardDiv.className = 'lugar-card'; cardDiv.id = `epi_card_${epiCardIndex}`;
+    cardDiv.innerHTML = `
+      <div class="card-header"><span>Condición Epidemiológica #${epiCardIndex}</span><button type="button" class="btn-remove-card" onclick="eliminarEpiCard(${epiCardIndex})">Eliminar</button></div>
+      <div class="card-grid"><div class="form-group col-span-full"><label>Síntoma:</label><input type="text" name="a3_sintoma[]" value="${sintoma}"></div></div>`;
+    container.appendChild(cardDiv);
+  }
+  function eliminarEpiCard(index) { const c = document.getElementById(`epi_card_${index}`); if(c) c.remove(); }
+
+  function agregarAguaGeneralCard() {
+    aguaGenCardIndex++;
+    const container = document.getElementById('contenedorAguaGeneralCards');
+    if (!container) return;
+    const cardDiv = document.createElement('div'); cardDiv.className = 'lugar-card'; cardDiv.id = `agua_gen_card_${aguaGenCardIndex}`;
+    cardDiv.innerHTML = `<div class="card-header"><span>Sistema Agua #${aguaGenCardIndex}</span><button type="button" class="btn-remove-card" onclick="eliminarAguaGeneralCard(${aguaGenCardIndex})">Eliminar</button></div><div class="card-grid"><div class="form-group col-span-full"><label>Lugar:</label><input type="text" name="a4a_lugar[]"></div></div>`;
+    container.appendChild(cardDiv);
+  }
+  function eliminarAguaGeneralCard(index) { const c = document.getElementById(`agua_gen_card_${index}`); if(c) c.remove(); }
+
+  function agregarAguaCalidadCard() {
+    aguaCalCardIndex++;
+    const container = document.getElementById('contenedorAguaCalidadCards');
+    if (!container) return;
+    const cardDiv = document.createElement('div'); cardDiv.className = 'lugar-card'; cardDiv.id = `agua_cal_card_${aguaCalCardIndex}`;
+    cardDiv.innerHTML = `<div class="card-header"><span>Muestra Agua #${aguaCalCardIndex}</span><button type="button" class="btn-remove-card" onclick="eliminarAguaCalidadCard(${aguaCalCardIndex})">Eliminar</button></div><div class="card-grid"><div class="form-group col-span-full"><label>Lugar Muestra:</label><input type="text" name="a4b_lugar_muestra[]"></div></div>`;
+    container.appendChild(cardDiv);
+  }
+  function eliminarAguaCalidadCard(index) { const c = document.getElementById(`agua_cal_card_${index}`); if(c) c.remove(); }
+
+  function agregarAlbergueGeneralCard() {
+    albergueGenCardIndex++;
+    const container = document.getElementById('contenedorAlberguesGeneralCards');
+    if (!container) return;
+    const cardDiv = document.createElement('div'); cardDiv.className = 'lugar-card'; cardDiv.id = `albergue_gen_card_${albergueGenCardIndex}`;
+    cardDiv.innerHTML = `<div class="card-header"><span>Albergue #${albergueGenCardIndex}</span><button type="button" class="btn-remove-card" onclick="eliminarAlbergueGeneralCard(${albergueGenCardIndex})">Eliminar</button></div><div class="card-grid"><div class="form-group col-span-full"><label>Nombre:</label><input type="text" name="a5a_nombre_albergue[]" oninput="actualizarOpcionesAlberguesParteB()"></div></div>`;
+    container.appendChild(cardDiv);
+    actualizarOpcionesAlberguesParteB();
+  }
+  function eliminarAlbergueGeneralCard(index) { const c = document.getElementById(`albergue_gen_card_${index}`); if(c) c.remove(); actualizarOpcionesAlberguesParteB(); }
+
+  function agregarAlberguePacienteCard() {
+    alberguePacCardIndex++;
+    const container = document.getElementById('contenedorAlberguesPacientesCards');
+    if (!container) return;
+    const cardDiv = document.createElement('div'); cardDiv.className = 'lugar-card'; cardDiv.id = `albergue_pac_card_${alberguePacCardIndex}`;
+    cardDiv.innerHTML = `<div class="card-header"><span>Paciente #${alberguePacCardIndex}</span><button type="button" class="btn-remove-card" onclick="eliminarAlberguePacienteCard(${alberguePacCardIndex})">Eliminar</button></div><div class="card-grid"><div class="form-group col-span-full"><label>Nombre Paciente:</label><input type="text" name="a5b_paciente_nombre[]"></div></div>`;
+    container.appendChild(cardDiv);
+  }
+  function eliminarAlberguePacienteCard(index) { const c = document.getElementById(`albergue_pac_card_${index}`); if(c) c.remove(); }
+
+  function toggleOtroEvento() { const s = document.getElementById('tipo_evento_select'); const i = document.getElementById('tipo_evento_otro'); if(s && i) i.style.display = (s.value.toLowerCase() === 'otro') ? 'block' : 'none'; }
+  function toggleOtroDepto() { const s = document.getElementById('depto_select'); const i = document.getElementById('depto_otro'); if(s && i) i.style.display = (s.value.toLowerCase() === 'otro') ? 'block' : 'none'; }
+  function calcularDias() { const fE = document.getElementById('a1_fecha_evento').value; const fV = document.getElementById('a1_fecha_visita').value; const res = document.getElementById('a1_dias_despues'); if (fE && fV) { const diff = Math.floor((new Date(fV).getTime() - new Date(fE).getTime()) / (1000*3600*24)); res.value = diff >= 0 ? diff : 0; } else { res.value = ''; } }
+  function obtenerGPS(inputId) {
+    const gpsInput = document.getElementById(inputId); if (!gpsInput) return;
+    if (!navigator.geolocation) return alert('Geolocalización no soportada.');
+    gpsInput.value = "Obteniendo GPS...";
+    navigator.geolocation.getCurrentPosition(
+      pos => { gpsInput.value = `${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`; },
+      err => { alert('Error de GPS: ' + err.message); gpsInput.value = ""; },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }
+
+  function validarYGuardar() {
+    guardarFormularioOficial();
+  }
+
+  /* BASE DE DATOS Y PROCESAMIENTO DE GUARDADO */
+  let db;
+  document.addEventListener('DOMContentLoaded', () => {
+    try { 
+      db = new Dexie('EDAN_Oficial_DB'); 
+      db.version(1).stores({ expedientes: '++id, fechaGuardado, sincronizado, a1_informe_no' }); 
+    } catch(e) {
+      console.warn("Error iniciando IndexedDB:", e);
+    }
+    updateOnlineStatus();
+
+    agregarLugarCard(); agregarSaludCard(); agregarRedCard();
+    [{ n: 'Fiebre' }, { n: 'Diarrea' }, { n: 'Heridos' }, { n: 'Muertos' }].forEach(s => agregarEpiCard(s.n));
+    agregarAguaGeneralCard(); agregarAguaCalidadCard(); agregarAlbergueGeneralCard(); agregarAlberguePacienteCard();
+  });
+
+  async function guardarFormularioOficial() {
+    try {
+      const form = document.getElementById('edanMasterForm');
+      const formData = new FormData(form);
+      const expedienteData = {};
+
+      for (let [key, value] of formData.entries()) {
+        if (key.endsWith('[]')) {
+          const cleanKey = key.replace('[]', '');
+          if (!expedienteData[cleanKey]) expedienteData[cleanKey] = [];
+          expedienteData[cleanKey].push(value);
+        } else { 
+          expedienteData[key] = value; 
+        }
+      }
+
+      expedienteData.fechaGuardado = new Date().toISOString();
+      expedienteData.sincronizado = 0;
+
+      let savedId = null;
+      if (db) {
+        if (currentExpedienteId) { 
+          await db.expedientes.update(currentExpedienteId, expedienteData); 
+          savedId = currentExpedienteId;
+        } else { 
+          savedId = await db.expedientes.add(expedienteData); 
+        }
+      }
+      
+      hayCambiosSinGuardar = false; 
+      localStorage.removeItem('edan_draft_v2');
+
+      // CONFIRMACIÓN CLARA AL USUARIO
+      alert(`✅ ¡INFORME GUARDADO CON ÉXITO EN EL TELÉFONO!\n\nID Asignado: #${savedId || 'OK'}\nEl registro ya está disponible en la pestaña 'Registros Guardados'.`);
+
+      // ACTUALIZACIÓN INMEDIATA DE LA VISTA
+      await renderPendientes();
+
+      // CAMBIO DE PESTAÑA A REGISTROS GUARDADOS
+      showTab('pendientes');
+
+      // INTENTO DE SINCRONIZACIÓN EN SEGUNDO PLANO CON GOOGLE SCRIPT
+      if (navigator.onLine) sincronizarServidor();
+
+    } catch (err) {
+      console.error("Error al guardar localmente:", err);
+      alert("❌ Error al guardar en el dispositivo: " + err.message);
+    }
+  }
+
+  async function exportarJSON() {
+    if(!db) return; const registros = await db.expedientes.toArray(); if(registros.length === 0) return alert("No hay registros.");
+    const blob = new Blob([JSON.stringify(registros, null, 2)], { type: "application/json" }); const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = `Respaldo_EDAN_${new Date().toISOString().substring(0,10)}.json`; a.click();
+  }
+
+  async function exportarCSV() {
+    if(!db) return; const registros = await db.expedientes.toArray(); if(registros.length === 0) return alert("No hay registros.");
+    let csv = "ID;FechaGuardado;Sincronizado;Informe;Evento;Departamento;Municipio\n";
+    registros.forEach(r => csv += `${r.id||''};${r.fechaGuardado||''};${r.sincronizado?'Si':'No'};${r.a1_informe_no||''};${r.a1_evento||''};${r.a1_departamento||''};${r.a1_municipio||''}\n`);
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" }); const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = `Respaldo_EDAN_${new Date().toISOString().substring(0,10)}.csv`; a.click();
+  }
+
+  async function renderPendientes() {
+    if (!db) return; 
+    try {
+      const list = await db.expedientes.toArray();
+      const tbody = document.getElementById('tablaPendientesBody');
+      if (tbody) {
+        tbody.innerHTML = list.map(item => `
+          <tr>
+            <td>#${item.id}</td>
+            <td>${item.a1_informe_no || 'INF-S/N'} (${item.a1_evento || 'N/A'})</td>
+            <td>${item.a1_municipio || 'N/A'}</td>
+            <td>${item.a1_fecha_visita || (item.fechaGuardado ? item.fechaGuardado.substring(0,10) : '')}</td>
+            <td>${item.sincronizado ? '✅ Subido' : '⏳ Local'}</td>
+          </tr>
+        `).join('');
+      }
+    } catch(err) {
+      console.error("Error al renderizar registros:", err);
+    }
+  }
+
+  function updateOnlineStatus() {
+    const status = document.getElementById('netStatus');
+    if (navigator.onLine) { status.textContent = 'ONLINE'; status.className = 'status-badge online'; sincronizarServidor(); } 
+    else { status.textContent = 'OFFLINE'; status.className = 'status-badge offline'; }
+  }
+
+  async function sincronizarServidor() {
+    if (!navigator.onLine || !db) return;
+    const sinSincronizar = await db.expedientes.where('sincronizado').equals(0).toArray();
+    
+    for (const exp of sinSincronizar) {
+      try {
+        await fetch('https://script.google.com/macros/s/AKfycbxn0vNpn1U2zpdOML28h_HtgyNUyU4mmnf-_TMwykgh3vsftGgSXnKvx9G2CKWcltp86w/exec', {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(exp)
+        });
+        
+        await db.expedientes.update(exp.id, { sincronizado: 1 });
+      } catch (err) { 
+        console.log("Servidor no disponible para envío en vivo:", err); 
+        break; 
+      }
+    }
+    renderPendientes();
+  }
+
+  window.addEventListener('online', updateOnlineStatus);
+  window.addEventListener('offline', updateOnlineStatus);
+
+  /* REGISTRO DE SERVICE WORKER CON ACTUALIZACIÓN LIMPIA Y AVISO FLOTANTE */
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').then(reg => {
-      // Si ya hay una versión descargada esperando activación
       if (reg.waiting) {
         mostrarAvisoActualizacion(reg.waiting);
       }
 
-      // Escuchar cuando se termine de descargar una actualización en segundo plano
       reg.onupdatefound = () => {
         const newWorker = reg.installing;
         newWorker.onstatechange = () => {
@@ -17,7 +1029,6 @@
       };
     });
 
-    // Recargar limpiamente la página en cuanto el nuevo Service Worker tome el control
     let refreshing = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       if (!refreshing) {
@@ -27,7 +1038,6 @@
     });
   }
 
-  // Despliega una barra flotante discreta en la parte inferior de la pantalla
   function mostrarAvisoActualizacion(worker) {
     if (document.getElementById('pwa-update-banner')) return;
 
@@ -52,13 +1062,12 @@
     document.body.appendChild(banner);
   }
 
-  // Función ejecutada al hacer clic en "Actualizar"
   function ejecutarActualizacionLimpia() {
-    // 1. Guardar el estado exacto de lo que el usuario está escribiendo
     guardarBorradorLocal();
-
-    // 2. Ordenar al Service Worker que aplique la actualización
     if (window.pendingWorker) {
       window.pendingWorker.postMessage({ type: 'SKIP_WAITING' });
     }
   }
+</script>
+</body>
+</html>
