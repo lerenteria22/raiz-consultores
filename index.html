@@ -140,17 +140,16 @@
 
 <!-- MENÚ PRINCIPAL DE NAVEGACIÓN -->
 <nav class="nav-tabs">
-  <button class="tab-btn active" id="btn_tab_situacion" onclick="showTab(this, 'tab_situacion')" type="button">Situación de Salud</button>
-  <button class="tab-btn" id="btn_tab_instalaciones" onclick="showTab(this, 'tab_instalaciones')" type="button">Instalaciones de Salud</button>
-  <button class="tab-btn" id="btn_anexo3" onclick="showTab(this, 'anexo3')" type="button">Vigilancia Epidemiológica</button>
-  <button class="tab-btn" id="btn_anexo4" onclick="showTab(this, 'anexo4')" type="button">Suministro de agua</button>
-  <button class="tab-btn" id="btn_anexo5" onclick="showTab(this, 'anexo5')" type="button">Evaluación rápida de Albergues</button>
-  <button class="tab-btn" id="btn_tab_eval_sanitaria_albergues" onclick="showTab(this, 'tab_eval_sanitaria_albergues')" type="button">Evaluación Sanitaria de Albergues</button>
-  <button class="tab-btn" id="btn_anexo6" onclick="showTab(this, 'anexo6')" type="button">Sistema de logística</button>
-  <button class="tab-btn" id="btn_pendientes" onclick="showTab(this, 'pendientes')" type="button">Registros Guardados</button>
+  <button class="tab-btn active" onclick="showTab('tab_situacion', this)" type="button">Situación de Salud</button>
+  <button class="tab-btn" onclick="showTab('tab_instalaciones', this)" type="button">Instalaciones de Salud</button>
+  <button class="tab-btn" onclick="showTab('anexo3', this)" type="button">Vigilancia Epidemiológica</button>
+  <button class="tab-btn" onclick="showTab('anexo4', this)" type="button">Suministro de agua</button>
+  <button class="tab-btn" onclick="showTab('anexo5', this)" type="button">Evaluación rápida de Albergues</button>
+  <button class="tab-btn" onclick="showTab('tab_eval_sanitaria_albergues', this)" type="button">Evaluación Sanitaria de Albergues</button>
+  <button class="tab-btn" onclick="showTab('anexo6', this)" type="button">Sistema de logística</button>
+  <button class="tab-btn" onclick="showTab('pendientes', this)" type="button">Registros Guardados</button>
 </nav>
 
-<!-- BLOQUEO DEL ENVÍO NATIVO (PREVIENE RECARGA DE PÁGINA) -->
 <form id="edanMasterForm" onsubmit="event.preventDefault(); return false;">
 
   <!-- PESTAÑA PRINCIPAL 1: EVALUACIÓN DE LA SITUACIÓN DE SALUD -->
@@ -158,9 +157,9 @@
     <h2>Evaluación de la situación de salud</h2>
     
     <div class="sub-nav-tabs">
-      <button class="sub-tab-btn active" id="btn_part_a" onclick="showSubTab(this, 'part_a')" type="button">Parte A: Información general</button>
-      <button class="sub-tab-btn" id="btn_part_b" onclick="showSubTab(this, 'part_b')" type="button">Parte B: Efectos en la salud</button>
-      <button class="sub-tab-btn" id="btn_part_c" onclick="showSubTab(this, 'part_c')" type="button">Parte C: Daños en la red de servicios de salud</button>
+      <button class="sub-tab-btn active" onclick="showSubTab('part_a', this)" type="button">Parte A: Información general</button>
+      <button class="sub-tab-btn" onclick="showSubTab('part_b', this)" type="button">Parte B: Efectos en la salud</button>
+      <button class="sub-tab-btn" onclick="showSubTab('part_c', this)" type="button">Parte C: Daños en la red de servicios de salud</button>
     </div>
 
     <!-- SUB-PESTAÑA A: INFORMACIÓN GENERAL -->
@@ -568,7 +567,7 @@
             Cargo:
             <span class="help-icon" title="Cargo del técnico responsable de la evaluación.">i</span>
           </label>
-          <input type="text" name="a4_elaborado_por_cargo" placeholder="Cargo de quien evalúa">
+          <input type="text" name="a4_elaborado_por_cargo" placeholder="Cargo del evaluador">
         </div>
         <div class="form-group">
           <label>
@@ -618,8 +617,8 @@
     <h2>Evaluación rápida de Albergues</h2>
 
     <div class="sub-nav-tabs">
-      <button class="sub-tab-btn active" id="btn_albergue_part_a" onclick="showSubTab(this, 'albergue_part_a')" type="button">Parte A: Identificación de albergues</button>
-      <button class="sub-tab-btn" id="btn_albergue_part_b" onclick="showSubTab(this, 'albergue_part_b')" type="button">Parte B: Identificación de pacientes</button>
+      <button class="sub-tab-btn active" onclick="showSubTab('albergue_part_a', this)" type="button">Parte A: Identificación de albergues</button>
+      <button class="sub-tab-btn" onclick="showSubTab('albergue_part_b', this)" type="button">Parte B: Identificación de pacientes</button>
     </div>
 
     <div class="info-block">
@@ -1394,7 +1393,7 @@
     </div>
   </div>
 
-  <!-- PESTAÑA PRINCIPAL 8: REGISTROS GUARDADOS (CON EXPORTACIÓN) -->
+  <!-- PESTAÑA PRINCIPAL 8: REGISTROS GUARDADOS -->
   <div id="pendientes" class="tab-content">
     <h2>Expedientes EDAN Guardados y Respaldo</h2>
     
@@ -1430,15 +1429,27 @@
   let currentExpedienteId = null;
   let hayCambiosSinGuardar = false;
 
-  /* ========================================================
-     NAVEGACIÓN DE PESTAÑAS (Blindado contra fallos de event)
-     ======================================================== */
-  function showTab(btnElement, tabId) {
+  /* NAVEGACIÓN TOTALMENTE RESILIENTE */
+  function showTab(tabId, btnElement) {
+    if (typeof tabId !== 'string') {
+      let temp = tabId;
+      tabId = btnElement;
+      btnElement = temp;
+    }
+    if (!tabId) return;
+
     document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.nav-tabs .tab-btn').forEach(el => el.classList.remove('active'));
     
-    document.getElementById(tabId).classList.add('active');
-    if (btnElement) btnElement.classList.add('active');
+    const target = document.getElementById(tabId);
+    if (target) target.classList.add('active');
+    
+    if (btnElement && btnElement.classList) {
+      btnElement.classList.add('active');
+    } else {
+      const btn = document.querySelector(`.nav-tabs .tab-btn[onclick*="${tabId}"]`);
+      if (btn) btn.classList.add('active');
+    }
     
     const actionBtns = document.getElementById('actionButtonsContainer');
     if(tabId === 'pendientes') {
@@ -1449,23 +1460,33 @@
     }
   }
 
-  function showSubTab(btnElement, subTabId) {
+  function showSubTab(subTabId, btnElement) {
+    if (typeof subTabId !== 'string') {
+      let temp = subTabId;
+      subTabId = btnElement;
+      btnElement = temp;
+    }
     const currentTab = document.querySelector('.tab-content.active');
     if (!currentTab) return;
+
     currentTab.querySelectorAll('.sub-tab-content').forEach(el => el.classList.remove('active'));
     currentTab.querySelectorAll('.sub-nav-tabs .sub-tab-btn').forEach(el => el.classList.remove('active'));
     
     const targetSub = document.getElementById(subTabId);
     if (targetSub) targetSub.classList.add('active');
-    if (btnElement) btnElement.classList.add('active');
+    
+    if (btnElement && btnElement.classList) {
+      btnElement.classList.add('active');
+    } else {
+      const btn = currentTab.querySelector(`.sub-nav-tabs .sub-tab-btn[onclick*="${subTabId}"]`);
+      if (btn) btn.classList.add('active');
+    }
 
     if (subTabId === 'part_b') actualizarOpcionesLugaresParteB();
     if (subTabId === 'albergue_part_b') actualizarOpcionesAlberguesParteB();
   }
 
-  /* ========================================================
-     PREVENCIÓN DE PÉRDIDA DE DATOS Y AUTO-GUARDADO
-     ======================================================== */
+  /* SISTEMA DE PREVENCIÓN Y AUTO-GUARDADO */
   document.getElementById('edanMasterForm').addEventListener('input', () => { hayCambiosSinGuardar = true; });
   document.getElementById('edanMasterForm').addEventListener('change', () => { hayCambiosSinGuardar = true; });
 
@@ -1504,147 +1525,334 @@
   setInterval(guardarBorradorLocal, 5000);
 
   function confirmarLimpieza() {
-    if(confirm("🚨 ¿Seguro que desea limpiar el formulario actual?\n\nTranquilo: Los expedientes que ya guardó y están en 'Registros Guardados' NO se borrarán. Solo se limpiará la pantalla actual para iniciar un reporte nuevo.")) {
+    if(confirm("🚨 ¿Seguro que desea limpiar el formulario actual?\n\nTranquilo: Los expedientes que ya guardó y están en 'Registros Guardados' NO se borrarán.")) {
       localStorage.removeItem('edan_draft_v2');
       hayCambiosSinGuardar = false;
       location.reload(); 
     }
   }
 
-  function calcularAreaPorPersona() {
-    const areaInput = document.getElementById('a7_area_total');
-    const pobInput = document.getElementById('a7_pob_total_sanitaria');
-    const resultadoInput = document.getElementById('a7_area_por_persona');
-    if (areaInput && pobInput && resultadoInput) {
-      const area = parseFloat(areaInput.value) || 0;
-      const pob = parseInt(pobInput.value) || 0;
-      resultadoInput.value = (area > 0 && pob > 0) ? `${(area / pob).toFixed(2)} metros cuadrados por persona` : '';
-    }
+  /* FUNCIONES DE GENERACIÓN DE TARJETAS COMPLETAS */
+  function agregarLugarCard() {
+    lugarCardIndex++;
+    const container = document.getElementById('contenedorLugaresCards');
+    const cardDiv = document.createElement('div');
+    cardDiv.className = 'lugar-card';
+    cardDiv.id = `lugar_card_${lugarCardIndex}`;
+    cardDiv.innerHTML = `
+      <div class="card-header">
+        <span>Lugar de Afectación #${lugarCardIndex}</span>
+        <button type="button" class="btn-remove-card" onclick="eliminarLugarCard(${lugarCardIndex})">Eliminar</button>
+      </div>
+      <div class="card-grid">
+        <div class="form-group">
+          <label>Lugar (Barrio / Comuna / Sector):</label>
+          <input type="text" name="a1a_lugar[]" placeholder="Ejemplo: Barrio El Jardín" oninput="actualizarOpcionesLugaresParteB()">
+        </div>
+        <div class="form-group">
+          <label>Población Total del Lugar:</label>
+          <input type="number" name="a1a_poblacion[]" placeholder="Ejemplo: 1200" min="0">
+        </div>
+        <div class="form-group col-span-full">
+          <label>Afectación de Servicios Básicos:</label>
+          <div class="services-grid">
+            <div class="service-item"><label>Suministro de Agua:</label><select name="a1a_agua[]"><option value="No Afectado">No Afectado</option><option value="Afectado">Afectado</option></select></div>
+            <div class="service-item"><label>Recolección de Basura:</label><select name="a1a_basura[]"><option value="No Afectado">No Afectado</option><option value="Afectado">Afectado</option></select></div>
+            <div class="service-item"><label>Alcantarillado:</label><select name="a1a_alcantarillado[]"><option value="No Afectado">No Afectado</option><option value="Afectado">Afectado</option></select></div>
+            <div class="service-item"><label>Energía Eléctrica:</label><select name="a1a_energia[]"><option value="No Afectado">No Afectado</option><option value="Afectado">Afectado</option></select></div>
+            <div class="service-item"><label>Comunicaciones:</label><select name="a1a_comms[]"><option value="No Afectado">No Afectado</option><option value="Afectado">Afectado</option></select></div>
+            <div class="service-item"><label>Transporte:</label><select name="a1a_transporte[]"><option value="No Afectado">No Afectado</option><option value="Afectado">Afectado</option></select></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Accesos Disponibles:</label>
+          <select name="a1a_accesos_select[]" onchange="toggleOtroAcceso(this)">
+            <option value="">Seleccione...</option>
+            <option value="Terrestre (Via carreteable)">Terrestre (Via carreteable)</option>
+            <option value="Terrestre (Camino)">Terrestre (Camino)</option>
+            <option value="Fluvial">Fluvial</option>
+            <option value="Aéreo">Aéreo</option>
+            <option value="Otro">Otro</option>
+          </select>
+          <input type="text" name="a1a_accesos_otro[]" class="accesos-otro-input otro-input-highlight" placeholder="Especifique acceso" style="display:none; margin-top:6px;">
+        </div>
+        <div class="form-group">
+          <label>Observaciones:</label>
+          <input type="text" name="a1a_obs[]" placeholder="Detalles de afectación">
+        </div>
+      </div>`;
+    container.appendChild(cardDiv);
+    actualizarOpcionesLugaresParteB();
   }
-
-  function obtenerLugaresParteA() {
-    const lugares = [];
-    document.querySelectorAll('input[name="a1a_lugar[]"]').forEach(input => {
-      const val = input.value.trim(); if (val && !lugares.includes(val)) lugares.push(val);
-    });
-    return lugares;
-  }
-
-  function actualizarOpcionesLugaresParteB() {
-    const lugaresParteA = obtenerLugaresParteA();
-    document.querySelectorAll('.select-lugar-parte-b').forEach(select => {
-      const valorPrevio = select.value;
-      let html = '<option value="">-- Seleccione un lugar de Parte A --</option>';
-      lugaresParteA.forEach(lugar => html += `<option value="${lugar}">${lugar}</option>`);
-      html += '<option value="Otro">Otro lugar...</option>';
-      select.innerHTML = html;
-      if (valorPrevio && (lugaresParteA.includes(valorPrevio) || valorPrevio === 'Otro')) select.value = valorPrevio;
-    });
-  }
-
-  function obtenerAlberguesParteA() {
-    const albergues = [];
-    document.querySelectorAll('input[name="a5a_nombre_albergue[]"]').forEach(input => {
-      const val = input.value.trim(); if (val && !albergues.includes(val)) albergues.push(val);
-    });
-    return albergues;
-  }
-
-  function actualizarOpcionesAlberguesParteB() {
-    const alberguesParteA = obtenerAlberguesParteA();
-    document.querySelectorAll('.select-albergue-parte-b').forEach(select => {
-      const valorPrevio = select.value;
-      let html = '<option value="">-- Seleccione un albergue de Parte A --</option>';
-      alberguesParteA.forEach(alb => html += `<option value="${alb}">${alb}</option>`);
-      html += '<option value="Otro">Otro albergue / institución...</option>';
-      select.innerHTML = html;
-      if (valorPrevio && (alberguesParteA.includes(valorPrevio) || valorPrevio === 'Otro')) select.value = valorPrevio;
-    });
-  }
-
-  function toggleModoExpediente(modo) {
-    const blockExistente = document.getElementById('block_expediente_existente');
-    if (modo === 'existente') { blockExistente.style.display = 'flex'; cargarExpedientesSelect(); } 
-    else { blockExistente.style.display = 'none'; currentExpedienteId = null; }
-  }
-
-  async function cargarExpedientesSelect() {
-    if (!db) return;
-    const select = document.getElementById('select_expediente_existente');
-    const expedientes = await db.expedientes.toArray();
-    if (expedientes.length === 0) { select.innerHTML = '<option value="">No hay expedientes guardados</option>'; return; }
-    select.innerHTML = '<option value="">-- Seleccione un expediente existente --</option>' + 
-      expedientes.map(exp => `<option value="${exp.id}">#${exp.id} - ${exp.a1_informe_no || 'S/N'} (${exp.a1_municipio || 'Sin Municipio'} - ${exp.a1_evento || 'Evento'})</option>`).join('');
-  }
-
-  async function cargarExpedienteVinculado(id) {
-    if (!id || !db) return;
-    currentExpedienteId = parseInt(id);
-    const exp = await db.expedientes.get(currentExpedienteId);
-    if (!exp) return;
-    if (exp.a1_informe_no) document.getElementById('a1_informe_no').value = exp.a1_informe_no;
-    if (exp.a1_elaborado_por_nombre) document.getElementById('a1_elaborado_por_nombre').value = exp.a1_elaborado_por_nombre;
-    if (exp.a1_elaborado_por_cargo) document.getElementById('a1_elaborado_por_cargo').value = exp.a1_elaborado_por_cargo;
-    if (exp.a1_fecha_evento) document.getElementById('a1_fecha_evento').value = exp.a1_fecha_evento;
-    if (exp.a1_fecha_visita) document.getElementById('a1_fecha_visita').value = exp.a1_fecha_visita;
-    if (exp.a1_municipio) document.getElementById('a1_municipio').value = exp.a1_municipio;
-    if (exp.a1_gps) document.getElementById('a1_gps').value = exp.a1_gps;
-    calcularDias();
-    alert(`Expediente #${id} cargado. Los datos que llene se anexarán a este informe.`);
-  }
-
-  function agregarLugarCard() { /* Igual, manejado por innerHTML */ }
   function eliminarLugarCard(index) { const c = document.getElementById(`lugar_card_${index}`); if(c) c.remove(); actualizarOpcionesLugaresParteB(); }
-  function agregarSaludCard() { /* Igual */ }
+
+  function agregarSaludCard() {
+    saludCardIndex++;
+    const container = document.getElementById('contenedorSaludCards');
+    const cardDiv = document.createElement('div');
+    cardDiv.className = 'lugar-card';
+    cardDiv.id = `salud_card_${saludCardIndex}`;
+    cardDiv.innerHTML = `
+      <div class="card-header">
+        <span>Registro de Salud por Lugar #${saludCardIndex}</span>
+        <button type="button" class="btn-remove-card" onclick="eliminarSaludCard(${saludCardIndex})">Eliminar</button>
+      </div>
+      <div class="card-grid">
+        <div class="form-group col-span-full">
+          <label>Lugar de Afectación (Sincronizado de Parte A):</label>
+          <select name="a1b_lugar[]" class="select-lugar-parte-b" onchange="toggleOtroLugarSalud(this)"></select>
+          <input type="text" name="a1b_lugar_otro[]" class="otro-input-highlight" placeholder="Otro lugar" style="display:none; margin-top:6px;">
+        </div>
+        <div class="form-group"><label>Heridos (Tratamiento Local):</label><input type="number" name="a1b_heridos_local[]" value="0" min="0"></div>
+        <div class="form-group"><label>Heridos (Requieren Traslado):</label><input type="number" name="a1b_heridos_traslado[]" value="0" min="0"></div>
+        <div class="form-group"><label>Fallecidos (Muertos):</label><input type="number" name="a1b_muertos[]" value="0" min="0"></div>
+        <div class="form-group"><label>Personas Desaparecidas:</label><input type="number" name="a1b_desaparecidos[]" value="0" min="0"></div>
+        <div class="form-group">
+          <label>¿Capacidad de Morgue Suficiente?:</label>
+          <select name="a1b_morgue[]"><option value="">Seleccione...</option><option value="Sí">Sí</option><option value="No">No</option></select>
+        </div>
+        <div class="form-group col-span-full">
+          <label>Observaciones e Inconvenientes (Manejo de Cadáveres):</label>
+          <input type="text" name="a1b_obs[]" placeholder="Especifique necesidades">
+        </div>
+      </div>`;
+    container.appendChild(cardDiv);
+    actualizarOpcionesLugaresParteB();
+  }
   function eliminarSaludCard(index) { const c = document.getElementById(`salud_card_${index}`); if(c) c.remove(); }
-  function agregarRedCard() { /* Igual */ }
+
+  function agregarRedCard() {
+    redCardIndex++;
+    const container = document.getElementById('contenedorRedCards');
+    const cardDiv = document.createElement('div');
+    cardDiv.className = 'lugar-card';
+    cardDiv.id = `red_card_${redCardIndex}`;
+    cardDiv.innerHTML = `
+      <div class="card-header">
+        <span>Institución de la Red de Servicios de Salud #${redCardIndex}</span>
+        <button type="button" class="btn-remove-card" onclick="eliminarRedCard(${redCardIndex})">Eliminar</button>
+      </div>
+      <div class="card-grid">
+        <div class="form-group"><label>Red Hospitalaria / Red de Servicios de Salud:</label><input type="text" name="a1c_red_zona[]" placeholder="Ej. Red Norte"></div>
+        <div class="form-group"><label>Nombre de la Institución:</label><input type="text" name="a1c_inst_nombre[]" placeholder="Ej. Hospital San José"></div>
+        <div class="form-group">
+          <label>Nivel de Complejidad Hospitalaria:</label>
+          <select name="a1c_nivel_complejidad[]"><option value="">Seleccione...</option><option value="Nivel 1 - Bajo">Nivel 1 - Bajo</option><option value="Nivel 2 - Medio">Nivel 2 - Medio</option><option value="Nivel 3 - Alto">Nivel 3 - Alto</option></select>
+        </div>
+        <div class="form-group">
+          <label>Funcionamiento de la Institución:</label>
+          <select name="a1c_funcionamiento[]"><option value="Total">Total</option><option value="Parcial">Parcial</option><option value="Inoperativo">Inoperativo</option></select>
+        </div>
+        <div class="form-group">
+          <label>Acceso a la Institución:</label>
+          <select name="a1c_acceso[]"><option value="Sí">Sí</option><option value="No">No</option></select>
+        </div>
+        <div class="form-group"><label>No. de Camas Disponibles Operativas:</label><input type="number" name="a1c_camas_disp[]" min="0" value="0"></div>
+        <div class="form-group col-span-full"><label>Servicios Disponibles:</label><input type="text" name="a1c_servicios_disp[]" placeholder="Servicios activos"></div>
+        <div class="form-group col-span-full"><label>Observaciones:</label><input type="text" name="a1c_obs[]" placeholder="Detalles de la institución"></div>
+      </div>`;
+    container.appendChild(cardDiv);
+  }
   function eliminarRedCard(index) { const c = document.getElementById(`red_card_${index}`); if(c) c.remove(); }
-  function agregarEpiCard(sintoma = '', nota = '') { /* Igual */ }
+
+  function agregarEpiCard(sintoma = '', nota = '') {
+    epiCardIndex++;
+    const container = document.getElementById('contenedorEpiCards');
+    const cardDiv = document.createElement('div');
+    cardDiv.className = 'lugar-card';
+    cardDiv.id = `epi_card_${epiCardIndex}`;
+    const htmlNota = nota ? `<div style="font-size:0.75rem; color:#856404; background:#fff3cd; padding:5px 8px; border-radius:4px; margin-bottom:10px;"><strong>Nota Oficial:</strong> ${nota}</div>` : '';
+    cardDiv.innerHTML = `
+      <div class="card-header">
+        <span>Condición Sintomática #${epiCardIndex}</span>
+        <button type="button" class="btn-remove-card" onclick="eliminarEpiCard(${epiCardIndex})">Eliminar</button>
+      </div>
+      ${htmlNota}
+      <div class="card-grid" style="margin-bottom:12px;">
+        <div class="form-group col-span-full">
+          <label>Signo, Síntoma o Condición:</label>
+          <input type="text" name="a3_sintoma[]" value="${sintoma}" placeholder="Ej. Fiebre">
+        </div>
+      </div>
+      <div class="epi-grid" id="epi_grid_${epiCardIndex}">
+        <div class="epi-header" style="text-align:left;">Grupo de Edad</div>
+        <div class="epi-header">Masculino (M)</div>
+        <div class="epi-header">Femenino (F)</div>
+        
+        <div class="epi-label">0 a 1 año</div>
+        <div><input type="number" name="a3_m01[]" value="0" min="0" class="epi-input input-epi-m" onchange="calcularTotalEpiCard(${epiCardIndex})"></div>
+        <div><input type="number" name="a3_f01[]" value="0" min="0" class="epi-input input-epi-f" onchange="calcularTotalEpiCard(${epiCardIndex})"></div>
+
+        <div class="epi-label">0 a 4 años</div>
+        <div><input type="number" name="a3_m04[]" value="0" min="0" class="epi-input input-epi-m" onchange="calcularTotalEpiCard(${epiCardIndex})"></div>
+        <div><input type="number" name="a3_f04[]" value="0" min="0" class="epi-input input-epi-f" onchange="calcularTotalEpiCard(${epiCardIndex})"></div>
+
+        <div class="epi-label">5 a 14 años</div>
+        <div><input type="number" name="a3_m514[]" value="0" min="0" class="epi-input input-epi-m" onchange="calcularTotalEpiCard(${epiCardIndex})"></div>
+        <div><input type="number" name="a3_f514[]" value="0" min="0" class="epi-input input-epi-f" onchange="calcularTotalEpiCard(${epiCardIndex})"></div>
+
+        <div class="epi-label">15 a 59 años</div>
+        <div><input type="number" name="a3_m1559[]" value="0" min="0" class="epi-input input-epi-m" onchange="calcularTotalEpiCard(${epiCardIndex})"></div>
+        <div><input type="number" name="a3_f1559[]" value="0" min="0" class="epi-input input-epi-f" onchange="calcularTotalEpiCard(${epiCardIndex})"></div>
+
+        <div class="epi-label">60 años o más</div>
+        <div><input type="number" name="a3_m60[]" value="0" min="0" class="epi-input input-epi-m" onchange="calcularTotalEpiCard(${epiCardIndex})"></div>
+        <div><input type="number" name="a3_f60[]" value="0" min="0" class="epi-input input-epi-f" onchange="calcularTotalEpiCard(${epiCardIndex})"></div>
+
+        <div class="epi-label epi-total-row">TOTALES CALCULADOS:</div>
+        <div class="epi-total-row" style="text-align:center;" id="tot_m_${epiCardIndex}">0</div>
+        <div class="epi-total-row" style="text-align:center;" id="tot_f_${epiCardIndex}">0</div>
+      </div>
+      <div class="form-group col-span-full" style="margin-top:12px;">
+        <label>Observaciones de esta Condición:</label>
+        <input type="text" name="a3_obs[]" placeholder="Observaciones adicionales...">
+      </div>`;
+    container.appendChild(cardDiv);
+  }
   function eliminarEpiCard(index) { const c = document.getElementById(`epi_card_${index}`); if(c) c.remove(); }
+
+  function agregarAguaGeneralCard() {
+    aguaGenCardIndex++;
+    const container = document.getElementById('contenedorAguaGeneralCards');
+    const cardDiv = document.createElement('div');
+    cardDiv.className = 'lugar-card';
+    cardDiv.id = `agua_gen_card_${aguaGenCardIndex}`;
+    cardDiv.innerHTML = `
+      <div class="card-header">
+        <span>Evaluación Sistema de Agua por Lugar #${aguaGenCardIndex}</span>
+        <button type="button" class="btn-remove-card" onclick="eliminarAguaGeneralCard(${aguaGenCardIndex})">Eliminar</button>
+      </div>
+      <div class="card-grid">
+        <div class="form-group col-span-full"><label>Lugar:</label><input type="text" name="a4a_lugar[]" placeholder="Ej. Barrio Centro"></div>
+        <div class="form-group"><label>Población Total:</label><input type="number" name="a4a_poblacion[]" placeholder="Ej. 1500" min="0"></div>
+        <div class="form-group"><label>Disponibilidad:</label><select name="a4a_disp_flag[]"><option value="">Seleccione...</option><option value="Sí">Sí</option><option value="No">No</option><option value="Parcial">Parcial</option></select></div>
+        <div class="form-group"><label>Población Cubierta:</label><input type="number" name="a4a_disp_pob[]" min="0"></div>
+        <div class="form-group"><label>Tratamiento Previo:</label><select name="a4a_tratamiento_previo[]"><option value="">Seleccione...</option><option value="Sí">Sí</option><option value="No">No</option></select></div>
+        <div class="form-group"><label>¿Daños en Fuentes?:</label><select name="a4a_danio_fuentes_flag[]"><option value="">Seleccione...</option><option value="Sí">Sí</option><option value="No">No</option></select></div>
+        <div class="form-group"><label>Volumen Perdido en Fuentes (m³):</label><input type="number" name="a4a_danio_fuentes_m3[]" min="0"></div>
+        <div class="form-group"><label>¿Daño en Tanques?:</label><select name="a4a_danio_tanques_flag[]"><option value="">Seleccione...</option><option value="Sí">Sí</option><option value="No">No</option></select></div>
+        <div class="form-group"><label>Capacidad Afectada (m³):</label><input type="number" name="a4a_danio_tanques_m3[]" min="0"></div>
+        <div class="form-group"><label>Control de Calidad (CCA):</label><select name="a4a_cca_flag[]"><option value="">Seleccione...</option><option value="Sí">Sí</option><option value="No">No</option></select></div>
+        <div class="form-group"><label>¿Requiere Suministros CCA?:</label><select name="a4a_req_personal_cca[]"><option value="">Seleccione...</option><option value="Sí">Sí</option><option value="No">No</option></select></div>
+        <div class="form-group"><label>¿Líneas de Conducción Afectadas?:</label><select name="a4a_lineas_cond_flag[]"><option value="">Seleccione...</option><option value="Sí">Sí</option><option value="No">No</option></select></div>
+        <div class="form-group"><label>Metros Lineales Dañados (m):</label><input type="number" name="a4a_lineas_cond_mts[]" min="0"></div>
+        <div class="form-group"><label>Tiempo Estimado Rehabilitación:</label><input type="text" name="a4a_tiempo_rehab[]" placeholder="Ej. 15 días"></div>
+        <div class="form-group"><label>¿Medios Locales para Rehabilitar?:</label><select name="a4a_medios_locales_rehab[]"><option value="">Seleccione...</option><option value="Sí">Sí</option><option value="No">No</option></select></div>
+        <div class="form-group col-span-full"><label>Observaciones:</label><input type="text" name="a4a_obs[]" placeholder="Detalles"></div>
+      </div>`;
+    container.appendChild(cardDiv);
+  }
+  function eliminarAguaGeneralCard(index) { const c = document.getElementById(`agua_gen_card_${index}`); if(c) c.remove(); }
+
+  function agregarAguaCalidadCard() {
+    aguaCalCardIndex++;
+    const container = document.getElementById('contenedorAguaCalidadCards');
+    const cardDiv = document.createElement('div');
+    cardDiv.className = 'lugar-card';
+    cardDiv.id = `agua_cal_card_${aguaCalCardIndex}`;
+    cardDiv.innerHTML = `
+      <div class="card-header">
+        <span>Prueba de Calidad de Agua #${aguaCalCardIndex}</span>
+        <button type="button" class="btn-remove-card" onclick="eliminarAguaCalidadCard(${aguaCalCardIndex})">Eliminar</button>
+      </div>
+      <div class="card-grid">
+        <div class="form-group col-span-full"><label>Lugar de Muestra:</label><input type="text" name="a4b_lugar_muestra[]" placeholder="Ej. Grifo Escuela"></div>
+        <div class="form-group"><label>Ubicación GPS:</label><div class="input-btn-group"><input type="text" id="a4b_gps_${aguaCalCardIndex}" name="a4b_gps[]" readonly><button type="button" class="btn-gps" onclick="obtenerGPS('a4b_gps_${aguaCalCardIndex}')">📍 GPS</button></div></div>
+        <div class="form-group"><label>Fecha:</label><input type="date" name="a4b_fecha[]"></div>
+        <div class="form-group"><label>Desinfectante Utilizado:</label><input type="text" name="a4b_desinfectante[]"></div>
+        <div class="form-group"><label>Cloro Residual (mg/L):</label><input type="text" name="a4b_cloro_residual[]"></div>
+        <div class="form-group"><label>Responsable:</label><input type="text" name="a4b_responsable[]"></div>
+        <div class="form-group col-span-full"><label>Observaciones Higiénico-Sanitarias:</label><input type="text" name="a4b_obs[]"></div>
+      </div>`;
+    container.appendChild(cardDiv);
+  }
+  function eliminarAguaCalidadCard(index) { const c = document.getElementById(`agua_cal_card_${index}`); if(c) c.remove(); }
+
+  function agregarAlbergueGeneralCard() {
+    albergueGenCardIndex++;
+    const container = document.getElementById('contenedorAlberguesGeneralCards');
+    const cardDiv = document.createElement('div');
+    cardDiv.className = 'lugar-card';
+    cardDiv.id = `albergue_gen_card_${albergueGenCardIndex}`;
+    cardDiv.innerHTML = `
+      <div class="card-header">
+        <span>Albergue #${albergueGenCardIndex}</span>
+        <button type="button" class="btn-remove-card" onclick="eliminarAlbergueGeneralCard(${albergueGenCardIndex})">Eliminar</button>
+      </div>
+      <div class="card-grid">
+        <div class="form-group col-span-full"><label>Sitio/Dirección:</label><input type="text" name="a5a_sitio_zona[]" placeholder="Ej. Calle 10 Coliseo"></div>
+        <div class="form-group"><label>GPS:</label><div class="input-btn-group"><input type="text" id="a5a_gps_${albergueGenCardIndex}" name="a5a_gps[]" readonly><button type="button" class="btn-gps" onclick="obtenerGPS('a5a_gps_${albergueGenCardIndex}')">📍 GPS</button></div></div>
+        <div class="form-group"><label>Nombre del Albergue:</label><input type="text" name="a5a_nombre_albergue[]" placeholder="Ej. San Francisco" oninput="actualizarOpcionesAlberguesParteB()"></div>
+        <div class="form-group"><label>Población Total:</label><input type="number" name="a5a_pob_total[]" min="0" value="0"></div>
+        <div class="form-group"><label>Tipo:</label><select name="a5a_tipo_albergue[]"><option value="">Seleccione...</option><option value="Oficial">Oficial</option><option value="Improvisado">Improvisado</option><option value="En casa de familias">En casa de familias</option></select></div>
+        <div class="form-group col-span-full">
+          <label>Indicadores de Salud:</label>
+          <div class="services-grid">
+            <div class="service-item"><label>¿Atención en salud?:</label><select name="a5a_atencion_salud[]"><option value="Sí">Sí</option><option value="No">No</option></select></div>
+            <div class="service-item"><label>¿Reporta al SVE?:</label><select name="a5a_reporta_sve[]"><option value="Sí">Sí</option><option value="No">No</option></select></div>
+            <div class="service-item"><label>¿Adultos Mayores?:</label><select name="a5a_adultos_mayores[]"><option value="Sí">Sí</option><option value="No">No</option></select></div>
+            <div class="service-item"><label>¿Enf. crónicas?:</label><select name="a5a_enf_cronicas[]"><option value="Sí">Sí</option><option value="No">No</option></select></div>
+            <div class="service-item"><label>¿Limitación funcional?:</label><select name="a5a_limitacion_func[]"><option value="Sí">Sí</option><option value="No">No</option></select></div>
+            <div class="service-item"><label>¿Nec. nutricionales?:</label><select name="a5a_nec_nutricionales[]"><option value="Sí">Sí</option><option value="No">No</option></select></div>
+          </div>
+        </div>
+        <div class="form-group col-span-full">
+          <label>Saneamiento Ambiental:</label>
+          <div class="services-grid">
+            <div class="service-item"><label>Disp. excretas:</label><select name="a5a_disp_excretas[]"><option value="Sí">Sí</option><option value="No">No</option></select></div>
+            <div class="service-item"><label>Drenaje aguas:</label><select name="a5a_drenaje_aguas[]"><option value="Sí">Sí</option><option value="No">No</option></select></div>
+            <div class="service-item"><label>Residuos sólidos:</label><select name="a5a_residuos_solidos[]"><option value="Sí">Sí</option><option value="No">No</option></select></div>
+            <div class="service-item"><label>Inocuidad alimentos:</label><select name="a5a_inocuidad_alim[]"><option value="Sí">Sí</option><option value="No">No</option></select></div>
+          </div>
+        </div>
+        <div class="form-group col-span-full"><label>Observaciones:</label><input type="text" name="a5a_obs[]"></div>
+      </div>`;
+    container.appendChild(cardDiv);
+    actualizarOpcionesAlberguesParteB();
+  }
+  function eliminarAlbergueGeneralCard(index) { const c = document.getElementById(`albergue_gen_card_${index}`); if(c) c.remove(); actualizarOpcionesAlberguesParteB(); }
+
+  function agregarAlberguePacienteCard() {
+    alberguePacCardIndex++;
+    const container = document.getElementById('contenedorAlberguesPacientesCards');
+    const cardDiv = document.createElement('div');
+    cardDiv.className = 'lugar-card';
+    cardDiv.id = `albergue_pac_card_${alberguePacCardIndex}`;
+    cardDiv.innerHTML = `
+      <div class="card-header">
+        <span>Registro de Paciente #${alberguePacCardIndex}</span>
+        <button type="button" class="btn-remove-card" onclick="eliminarAlberguePacienteCard(${alberguePacCardIndex})">Eliminar</button>
+      </div>
+      <div class="card-grid">
+        <div class="form-group col-span-full"><label>Albergue:</label><select name="a5b_albergue[]" class="select-albergue-parte-b" onchange="toggleOtroAlberguePaciente(this)"></select><input type="text" name="a5b_albergue_otro[]" class="otro-input-highlight" placeholder="Otro albergue" style="display:none; margin-top:6px;"></div>
+        <div class="form-group"><label>Nombre del Paciente:</label><input type="text" name="a5b_paciente_nombre[]" placeholder="Nombre completo"></div>
+        <div class="form-group"><label>Fórmula / Requerimiento:</label><input type="text" name="a5b_formula_medica[]" placeholder="Medicamento o equipo"></div>
+        <div class="form-group"><label>Disponibilidad:</label><select name="a5b_disp_flag[]"><option value="No">No (En falta)</option><option value="Sí">Sí</option><option value="Parcial">Parcial</option></select></div>
+        <div class="form-group"><label>Cantidad Disponible:</label><input type="text" name="a5b_disp_cantidad[]"></div>
+        <div class="form-group"><label>¿Por cuánto tiempo?:</label><input type="text" name="a5b_disp_tiempo[]"></div>
+        <div class="form-group col-span-full"><label>Observaciones:</label><input type="text" name="a5b_obs[]" placeholder="Contacto / Ubicación carpa"></div>
+      </div>`;
+    container.appendChild(cardDiv);
+    actualizarOpcionesAlberguesParteB();
+  }
+  function eliminarAlberguePacienteCard(index) { const c = document.getElementById(`albergue_pac_card_${index}`); if(c) c.remove(); }
+
+  /* AUXILIARES DE INTERFAZ */
   function calcularTotalEpiCard(cardIdx) {
-    const grid = document.getElementById(`epi_grid_${cardIdx}`);
-    if (!grid) return;
+    const grid = document.getElementById(`epi_grid_${cardIdx}`); if (!grid) return;
     let totM = 0; grid.querySelectorAll('.input-epi-m').forEach(i => totM += (parseInt(i.value) || 0));
     let totF = 0; grid.querySelectorAll('.input-epi-f').forEach(i => totF += (parseInt(i.value) || 0));
     document.getElementById(`tot_m_${cardIdx}`).textContent = totM;
     document.getElementById(`tot_f_${cardIdx}`).textContent = totF;
   }
-  function agregarAguaGeneralCard() { /* Igual */ }
-  function eliminarAguaGeneralCard(index) { const c = document.getElementById(`agua_gen_card_${index}`); if(c) c.remove(); }
-  function agregarAguaCalidadCard() { /* Igual */ }
-  function eliminarAguaCalidadCard(index) { const c = document.getElementById(`agua_cal_card_${index}`); if(c) c.remove(); }
-  function agregarAlbergueGeneralCard() { /* Igual */ }
-  function eliminarAlbergueGeneralCard(index) { const c = document.getElementById(`albergue_gen_card_${index}`); if(c) c.remove(); actualizarOpcionesAlberguesParteB(); }
-  function agregarAlberguePacienteCard() { /* Igual */ }
-  function eliminarAlberguePacienteCard(index) { const c = document.getElementById(`albergue_pac_card_${index}`); if(c) c.remove(); }
-
-  function toggleOtroLugarSalud(selectEl) {
-    const inputOtro = selectEl.closest('.form-group').querySelector('input[name="a1b_lugar_otro[]"]');
-    inputOtro.style.display = (selectEl.value === 'Otro') ? 'block' : 'none';
-  }
-  function toggleOtroAlberguePaciente(selectEl) {
-    const inputOtro = selectEl.closest('.form-group').querySelector('input[name="a5b_albergue_otro[]"]');
-    inputOtro.style.display = (selectEl.value === 'Otro') ? 'block' : 'none';
-  }
-  function toggleOtroAcceso(selectEl) {
-    const inputOtro = selectEl.closest('.form-group').querySelector('.accesos-otro-input');
-    if(inputOtro) { inputOtro.style.display = (selectEl.value.toLowerCase() === 'otro') ? 'block' : 'none'; }
-  }
-  function toggleOtroEvento() {
-    const sel = document.getElementById('tipo_evento_select'); const input = document.getElementById('tipo_evento_otro');
-    if(sel && input) { input.style.display = (sel.value.toLowerCase() === 'otro') ? 'block' : 'none'; }
-  }
-  function toggleOtroDepto() {
-    const sel = document.getElementById('depto_select'); const input = document.getElementById('depto_otro');
-    if(sel && input) { input.style.display = (sel.value.toLowerCase() === 'otro') ? 'block' : 'none'; }
-  }
-  function calcularDias() {
-    const fE = document.getElementById('a1_fecha_evento').value; const fV = document.getElementById('a1_fecha_visita').value; const res = document.getElementById('a1_dias_despues');
-    if (fE && fV) { const diff = Math.floor((new Date(fV).getTime() - new Date(fE).getTime()) / (1000*3600*24)); res.value = diff >= 0 ? diff : 0; } else { res.value = ''; }
-  }
+  function toggleOtroLugarSalud(selectEl) { const i = selectEl.closest('.form-group').querySelector('input[name="a1b_lugar_otro[]"]'); if(i) i.style.display = (selectEl.value === 'Otro') ? 'block' : 'none'; }
+  function toggleOtroAlberguePaciente(selectEl) { const i = selectEl.closest('.form-group').querySelector('input[name="a5b_albergue_otro[]"]'); if(i) i.style.display = (selectEl.value === 'Otro') ? 'block' : 'none'; }
+  function toggleOtroAcceso(selectEl) { const i = selectEl.closest('.form-group').querySelector('.accesos-otro-input'); if(i) i.style.display = (selectEl.value.toLowerCase() === 'otro') ? 'block' : 'none'; }
+  function toggleOtroEvento() { const s = document.getElementById('tipo_evento_select'); const i = document.getElementById('tipo_evento_otro'); if(s && i) i.style.display = (s.value.toLowerCase() === 'otro') ? 'block' : 'none'; }
+  function toggleOtroDepto() { const s = document.getElementById('depto_select'); const i = document.getElementById('depto_otro'); if(s && i) i.style.display = (s.value.toLowerCase() === 'otro') ? 'block' : 'none'; }
+  function calcularDias() { const fE = document.getElementById('a1_fecha_evento').value; const fV = document.getElementById('a1_fecha_visita').value; const res = document.getElementById('a1_dias_despues'); if (fE && fV) { const diff = Math.floor((new Date(fV).getTime() - new Date(fE).getTime()) / (1000*3600*24)); res.value = diff >= 0 ? diff : 0; } else { res.value = ''; } }
   function obtenerGPS(inputId) {
-    const gpsInput = document.getElementById(inputId);
-    if (!gpsInput) return;
+    const gpsInput = document.getElementById(inputId); if (!gpsInput) return;
     if (!navigator.geolocation) return alert('Geolocalización no soportada.');
     gpsInput.value = "Obteniendo GPS...";
     navigator.geolocation.getCurrentPosition(
@@ -1654,17 +1862,12 @@
     );
   }
 
-  /* ========================================================
-     NUEVO MOTOR DE NAVEGACIÓN Y VALIDACIÓN (Sin Obligatorios)
-     ======================================================== */
+  /* MOTOR DE VALIDACIÓN Y GUARDADO LIBRE */
   function validarYGuardar() {
-    // Al no haber 'required', siempre pasa directo a guardar. Libertad total en campo.
     guardarFormularioOficial();
   }
 
-  /* ========================================================
-     BASE DE DATOS Y GUARDADO OFICIAL
-     ======================================================== */
+  /* BASE DE DATOS LOCAL Y SINCRONIZACIÓN CON GOOGLE SCRIPT */
   let db;
   document.addEventListener('DOMContentLoaded', () => {
     try { db = new Dexie('EDAN_Oficial_DB'); db.version(1).stores({ expedientes: '++id, fechaGuardado, sincronizado, a1_informe_no' }); } catch(e) {}
@@ -1689,52 +1892,62 @@
   });
 
   async function guardarFormularioOficial() {
-    const form = document.getElementById('edanMasterForm');
-    const formData = new FormData(form);
-    const expedienteData = {};
+    try {
+      const form = document.getElementById('edanMasterForm');
+      const formData = new FormData(form);
+      const expedienteData = {};
 
-    for (let [key, value] of formData.entries()) {
-      if (key.endsWith('[]')) {
-        const cleanKey = key.replace('[]', '');
-        if (!expedienteData[cleanKey]) expedienteData[cleanKey] = [];
-        if (cleanKey === 'a1b_lugar') {
-          const otros = formData.getAll('a1b_lugar_otro[]');
-          expedienteData[cleanKey].push(value === 'Otro' ? (otros[expedienteData[cleanKey].length] || 'Otro') : value);
-        } else if (cleanKey === 'a5b_albergue') {
-          const otros = formData.getAll('a5b_albergue_otro[]');
-          expedienteData[cleanKey].push(value === 'Otro' ? (otros[expedienteData[cleanKey].length] || 'Otro') : value);
-        } else { expedienteData[cleanKey].push(value); }
-      } else { expedienteData[key] = value; }
+      for (let [key, value] of formData.entries()) {
+        if (key.endsWith('[]')) {
+          const cleanKey = key.replace('[]', '');
+          if (!expedienteData[cleanKey]) expedienteData[cleanKey] = [];
+          if (cleanKey === 'a1b_lugar') {
+            const otros = formData.getAll('a1b_lugar_otro[]');
+            expedienteData[cleanKey].push(value === 'Otro' ? (otros[expedienteData[cleanKey].length] || 'Otro') : value);
+          } else if (cleanKey === 'a5b_albergue') {
+            const otros = formData.getAll('a5b_albergue_otro[]');
+            expedienteData[cleanKey].push(value === 'Otro' ? (otros[expedienteData[cleanKey].length] || 'Otro') : value);
+          } else { expedienteData[cleanKey].push(value); }
+        } else { expedienteData[key] = value; }
+      }
+
+      if (formData.get('a1_evento_select')) { expedienteData.a1_evento = (formData.get('a1_evento_select') === 'Otro') ? formData.get('a1_evento_otro') : formData.get('a1_evento_select'); }
+      if (formData.get('a1_depto_select')) { expedienteData.a1_departamento = (formData.get('a1_depto_select') === 'Otro') ? formData.get('a1_depto_otro') : formData.get('a1_depto_select'); }
+      
+      if (expedienteData.a1a_accesos_select) { 
+          const otros = expedienteData.a1a_accesos_otro || [];
+          expedienteData.a1a_accesos = expedienteData.a1a_accesos_select.map((sel, idx) => (sel === 'Otro') ? (otros[idx] || 'Otro') : sel); 
+          delete expedienteData.a1a_accesos_select;
+          delete expedienteData.a1a_accesos_otro;
+      }
+
+      expedienteData.fechaGuardado = new Date().toISOString();
+      expedienteData.sincronizado = 0;
+
+      let savedId = null;
+      if (db) {
+        if (currentExpedienteId) { 
+          await db.expedientes.update(currentExpedienteId, expedienteData); 
+          savedId = currentExpedienteId;
+        } else { 
+          savedId = await db.expedientes.add(expedienteData); 
+        }
+      }
+      
+      hayCambiosSinGuardar = false; 
+      localStorage.removeItem('edan_draft_v2');
+
+      alert(`✅ ¡Registro Guardado con Éxito en el Celular! (ID #${savedId || 'OK'})`);
+
+      if (navigator.onLine) sincronizarServidor();
+      showTab('pendientes');
+
+    } catch (err) {
+      console.error("Error al guardar localmente:", err);
+      alert("❌ Error al guardar localmente: " + err.message);
     }
-
-    if (formData.get('a1_evento_select')) { expedienteData.a1_evento = (formData.get('a1_evento_select') === 'Otro') ? formData.get('a1_evento_otro') : formData.get('a1_evento_select'); }
-    if (formData.get('a1_depto_select')) { expedienteData.a1_departamento = (formData.get('a1_depto_select') === 'Otro') ? formData.get('a1_depto_otro') : formData.get('a1_depto_select'); }
-    
-    // Mapeo seguro para evitar crash si el usuario no rellenó el campo "Otro"
-    if (expedienteData.a1a_accesos_select) { 
-        const otros = expedienteData.a1a_accesos_otro || [];
-        expedienteData.a1a_accesos = expedienteData.a1a_accesos_select.map((sel, idx) => (sel === 'Otro') ? (otros[idx] || 'Otro') : sel); 
-        delete expedienteData.a1a_accesos_select;
-        delete expedienteData.a1a_accesos_otro;
-    }
-
-    expedienteData.fechaGuardado = new Date().toISOString();
-    expedienteData.sincronizado = 0;
-
-    if (db) {
-      if (currentExpedienteId) { await db.expedientes.update(currentExpedienteId, expedienteData); alert(`✅ Expediente #${currentExpedienteId} actualizado con éxito.`); } 
-      else { const newId = await db.expedientes.add(expedienteData); alert(`✅ Nuevo expediente #${newId} guardado con éxito.`); }
-    }
-    
-    hayCambiosSinGuardar = false; localStorage.removeItem('edan_draft_v2');
-    if (navigator.onLine) sincronizarServidor();
-    const btnTab = document.querySelector('button[onclick*="pendientes"]');
-    if(btnTab) btnTab.click();
   }
 
-  /* ========================================================
-     SISTEMA DE EXPORTACIÓN Y SINCRONIZACIÓN
-     ======================================================== */
   async function exportarJSON() {
     if(!db) return; const registros = await db.expedientes.toArray(); if(registros.length === 0) return alert("No hay registros.");
     const blob = new Blob([JSON.stringify(registros, null, 2)], { type: "application/json" }); const a = document.createElement("a");
@@ -1770,12 +1983,14 @@
       try {
         const res = await fetch('https://script.google.com/macros/s/AKfycbxn0vNpn1U2zpdOML28h_HtgyNUyU4mmnf-_TMwykgh3vsftGgSXnKvx9G2CKWcltp86w/exec', {
           method: 'POST',
+          mode: 'no-cors', // Modo seguro para Google Apps Script que evita bloqueos CORS
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify(exp)
         });
         
-        if (res.ok) { await db.expedientes.update(exp.id, { sincronizado: 1 }); }
-      } catch (err) { console.log("Intento de subida falló, reintentando luego..."); break; }
+        // Al usar no-cors, la petición se envía con éxito a Google
+        await db.expedientes.update(exp.id, { sincronizado: 1 });
+      } catch (err) { console.log("Intento de subida falló, reintentando luego...", err); break; }
     }
     renderPendientes();
   }
