@@ -1,0 +1,22 @@
+{
+    "name": "EDAN Salud - RAIZ Consultores",
+    "short_name": "EDAN Salud",
+    "description": "Herramienta de Evaluación de Daños y Análisis de Necesidades en Salud para respuesta a desastres.",
+    "start_url": "./index.html",
+    "display": "standalone",
+    "background_color": "#f4f6f9",
+    "theme_color": "#8cc63f",
+    "orientation": "portrait",
+    "icons": [
+        {
+            "src": "https://lh3.googleusercontent.com/d/1xS7R9XaZRU57at1CwBlXCuxY0bssbkpq",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "https://lh3.googleusercontent.com/d/1xS7R9XaZRU57at1CwBlXCuxY0bssbkpq",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}
