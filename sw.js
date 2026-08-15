@@ -1,5 +1,5 @@
 // IMPORTANTE: Incrementa la versión (v2 -> v3 -> v4) cada vez que subas cambios a GitHub
-const CACHE_NAME = 'edan-salud-v3';
+const CACHE_NAME = 'edan-salud-v4';
 
 const urlsToCache = [
   './',
