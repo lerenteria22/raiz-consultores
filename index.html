@@ -140,26 +140,27 @@
 
 <!-- MENÚ PRINCIPAL DE NAVEGACIÓN -->
 <nav class="nav-tabs">
-  <button class="tab-btn active" onclick="showTab(this, 'tab_situacion')" type="button">Situación de Salud</button>
-  <button class="tab-btn" onclick="showTab(this, 'tab_instalaciones')" type="button">Instalaciones de Salud</button>
-  <button class="tab-btn" onclick="showTab(this, 'anexo3')" type="button">Vigilancia Epidemiológica</button>
-  <button class="tab-btn" onclick="showTab(this, 'anexo4')" type="button">Suministro de agua</button>
-  <button class="tab-btn" onclick="showTab(this, 'anexo5')" type="button">Evaluación rápida de Albergues</button>
-  <button class="tab-btn" onclick="showTab(this, 'tab_eval_sanitaria_albergues')" type="button">Evaluación Sanitaria de Albergues</button>
-  <button class="tab-btn" onclick="showTab(this, 'anexo6')" type="button">Sistema de logística</button>
-  <button class="tab-btn" onclick="showTab(this, 'pendientes')" type="button">Registros Guardados</button>
+  <button class="tab-btn active" id="btn_tab_situacion" onclick="showTab(this, 'tab_situacion')" type="button">Situación de Salud</button>
+  <button class="tab-btn" id="btn_tab_instalaciones" onclick="showTab(this, 'tab_instalaciones')" type="button">Instalaciones de Salud</button>
+  <button class="tab-btn" id="btn_anexo3" onclick="showTab(this, 'anexo3')" type="button">Vigilancia Epidemiológica</button>
+  <button class="tab-btn" id="btn_anexo4" onclick="showTab(this, 'anexo4')" type="button">Suministro de agua</button>
+  <button class="tab-btn" id="btn_anexo5" onclick="showTab(this, 'anexo5')" type="button">Evaluación rápida de Albergues</button>
+  <button class="tab-btn" id="btn_tab_eval_sanitaria_albergues" onclick="showTab(this, 'tab_eval_sanitaria_albergues')" type="button">Evaluación Sanitaria de Albergues</button>
+  <button class="tab-btn" id="btn_anexo6" onclick="showTab(this, 'anexo6')" type="button">Sistema de logística</button>
+  <button class="tab-btn" id="btn_pendientes" onclick="showTab(this, 'pendientes')" type="button">Registros Guardados</button>
 </nav>
 
-<form id="edanMasterForm">
+<!-- BLOQUEO DEL ENVÍO NATIVO (PREVIENE RECARGA DE PÁGINA) -->
+<form id="edanMasterForm" onsubmit="event.preventDefault(); return false;">
 
   <!-- PESTAÑA PRINCIPAL 1: EVALUACIÓN DE LA SITUACIÓN DE SALUD -->
   <div id="tab_situacion" class="tab-content active">
     <h2>Evaluación de la situación de salud</h2>
     
     <div class="sub-nav-tabs">
-      <button class="sub-tab-btn active" onclick="showSubTab(this, 'part_a')" type="button">Parte A: Información general</button>
-      <button class="sub-tab-btn" onclick="showSubTab(this, 'part_b')" type="button">Parte B: Efectos en la salud</button>
-      <button class="sub-tab-btn" onclick="showSubTab(this, 'part_c')" type="button">Parte C: Daños en la red de servicios de salud</button>
+      <button class="sub-tab-btn active" id="btn_part_a" onclick="showSubTab(this, 'part_a')" type="button">Parte A: Información general</button>
+      <button class="sub-tab-btn" id="btn_part_b" onclick="showSubTab(this, 'part_b')" type="button">Parte B: Efectos en la salud</button>
+      <button class="sub-tab-btn" id="btn_part_c" onclick="showSubTab(this, 'part_c')" type="button">Parte C: Daños en la red de servicios de salud</button>
     </div>
 
     <!-- SUB-PESTAÑA A: INFORMACIÓN GENERAL -->
@@ -188,10 +189,10 @@
       <div class="info-block">
         <div class="info-block-title">1. Control del Informe y Evento</div>
         <div class="grid-4" style="margin-bottom: 10px;">
-          <div class="form-group"><label>Número de Informe:</label><input type="text" id="a1_informe_no" name="a1_informe_no" required placeholder="Ej. INF-001"></div>
+          <div class="form-group"><label>Número de Informe:</label><input type="text" id="a1_informe_no" name="a1_informe_no" placeholder="Ej. INF-001"></div>
           <div class="form-group">
             <label>Elaborado por (Nombre):</label>
-            <input type="text" id="a1_elaborado_por_nombre" name="a1_elaborado_por_nombre" placeholder="Nombre del evaluador" required>
+            <input type="text" id="a1_elaborado_por_nombre" name="a1_elaborado_por_nombre" placeholder="Nombre del evaluador">
           </div>
           <div class="form-group">
             <label>Cargo:</label>
@@ -199,7 +200,7 @@
           </div>
           <div class="form-group">
             <label>Tipo de Evento:</label>
-            <select name="a1_evento_select" id="tipo_evento_select" onchange="toggleOtroEvento()" required>
+            <select name="a1_evento_select" id="tipo_evento_select" onchange="toggleOtroEvento()">
               <option value="">Seleccione...</option>
               <option value="SISMO">SISMO</option>
               <option value="Inundación">Inundación</option>
@@ -211,8 +212,8 @@
         </div>
 
         <div class="grid-4">
-          <div class="form-group"><label>Fecha del Evento:</label><input type="date" id="a1_fecha_evento" name="a1_fecha_evento" onchange="calcularDias()" required></div>
-          <div class="form-group"><label>Fecha de Visita:</label><input type="date" id="a1_fecha_visita" name="a1_fecha_visita" onchange="calcularDias()" required></div>
+          <div class="form-group"><label>Fecha del Evento:</label><input type="date" id="a1_fecha_evento" name="a1_fecha_evento" onchange="calcularDias()"></div>
+          <div class="form-group"><label>Fecha de Visita:</label><input type="date" id="a1_fecha_visita" name="a1_fecha_visita" onchange="calcularDias()"></div>
           <div class="form-group"><label>Hora de Visita:</label><input type="time" name="a1_hora_visita"></div>
           <div class="form-group"><label>Días transcurridos:</label><input type="number" id="a1_dias_despues" name="a1_dias_despues" readonly placeholder="Auto-calculado"></div>
         </div>
@@ -224,20 +225,20 @@
           <div class="form-group"><label>País:</label><input type="text" name="a1_pais" value="Colombia" readonly></div>
           <div class="form-group">
             <label>Departamento:</label>
-            <select name="a1_depto_select" id="depto_select" onchange="toggleOtroDepto()" required>
+            <select name="a1_depto_select" id="depto_select" onchange="toggleOtroDepto()">
               <option value="Chocó">Chocó</option>
               <option value="Valle del Cauca">Valle del Cauca</option>
               <option value="Otro">Otro</option>
             </select>
             <input type="text" name="a1_depto_otro" id="depto_otro" class="otro-input-highlight" placeholder="¿Cuál departamento?" style="display:none; margin-top:5px;">
           </div>
-          <div class="form-group"><label>Municipio:</label><input type="text" id="a1_municipio" name="a1_municipio" required placeholder="Nombre del municipio"></div>
+          <div class="form-group"><label>Municipio:</label><input type="text" id="a1_municipio" name="a1_municipio" placeholder="Nombre del municipio"></div>
         </div>
 
         <div class="form-group">
           <label>Coordenadas GPS (Latitud, Longitud):</label>
           <div class="input-btn-group">
-            <input type="text" id="a1_gps" name="a1_gps" placeholder="Ejemplo: 5.123456, -76.654321" readonly required>
+            <input type="text" id="a1_gps" name="a1_gps" placeholder="Ejemplo: 5.123456, -76.654321" readonly>
             <button type="button" class="btn-gps" onclick="obtenerGPS('a1_gps')">📍 Capturar GPS</button>
           </div>
         </div>
@@ -338,7 +339,7 @@
       <div class="grid-3" style="margin-bottom: 10px;">
         <div class="form-group">
           <label>Nombre de la Institución / Instalación de Salud:</label>
-          <input type="text" name="a2_institucion" placeholder="Ej. Hospital San José / Centro de Salud Norte" required>
+          <input type="text" name="a2_institucion" placeholder="Ej. Hospital San José / Centro de Salud Norte">
         </div>
         <div class="form-group">
           <label>Tipo de Instalación de Salud:</label>
@@ -492,7 +493,7 @@
             Nombre de la Instalación o Albergue:
             <span class="help-icon" title="(1) Escriba el nombre oficial del hospital, centro de salud o albergue donde se realiza el censo diario.">i</span>
           </label>
-          <input type="text" name="a3_hospital_nombre" placeholder="Nombre de la instalación o albergue" required>
+          <input type="text" name="a3_hospital_nombre" placeholder="Nombre de la instalación o albergue">
         </div>
         <div class="form-group">
           <label>
@@ -532,7 +533,7 @@
             Fecha del Reporte Diario:
             <span class="help-icon" title="Fecha del censo diario. Recuerde que el reporte debe hacerse en intervalos de 24 horas.">i</span>
           </label>
-          <input type="date" name="a3_fecha_reporte" required>
+          <input type="date" name="a3_fecha_reporte">
         </div>
       </div>
     </div>
@@ -617,8 +618,8 @@
     <h2>Evaluación rápida de Albergues</h2>
 
     <div class="sub-nav-tabs">
-      <button class="sub-tab-btn active" onclick="showSubTab(this, 'albergue_part_a')" type="button">Parte A: Identificación de albergues</button>
-      <button class="sub-tab-btn" onclick="showSubTab(this, 'albergue_part_b')" type="button">Parte B: Identificación de pacientes</button>
+      <button class="sub-tab-btn active" id="btn_albergue_part_a" onclick="showSubTab(this, 'albergue_part_a')" type="button">Parte A: Identificación de albergues</button>
+      <button class="sub-tab-btn" id="btn_albergue_part_b" onclick="showSubTab(this, 'albergue_part_b')" type="button">Parte B: Identificación de pacientes</button>
     </div>
 
     <div class="info-block">
@@ -1451,7 +1452,6 @@
   function showSubTab(btnElement, subTabId) {
     const currentTab = document.querySelector('.tab-content.active');
     if (!currentTab) return;
-
     currentTab.querySelectorAll('.sub-tab-content').forEach(el => el.classList.remove('active'));
     currentTab.querySelectorAll('.sub-nav-tabs .sub-tab-btn').forEach(el => el.classList.remove('active'));
     
@@ -1511,9 +1511,6 @@
     }
   }
 
-  /* ========================================================
-     UTILIDADES, CÁLCULOS Y GPS
-     ======================================================== */
   function calcularAreaPorPersona() {
     const areaInput = document.getElementById('a7_area_total');
     const pobInput = document.getElementById('a7_pob_total_sanitaria');
@@ -1624,24 +1621,22 @@
   function toggleOtroLugarSalud(selectEl) {
     const inputOtro = selectEl.closest('.form-group').querySelector('input[name="a1b_lugar_otro[]"]');
     inputOtro.style.display = (selectEl.value === 'Otro') ? 'block' : 'none';
-    inputOtro.required = (selectEl.value === 'Otro');
   }
   function toggleOtroAlberguePaciente(selectEl) {
     const inputOtro = selectEl.closest('.form-group').querySelector('input[name="a5b_albergue_otro[]"]');
     inputOtro.style.display = (selectEl.value === 'Otro') ? 'block' : 'none';
-    inputOtro.required = (selectEl.value === 'Otro');
   }
   function toggleOtroAcceso(selectEl) {
     const inputOtro = selectEl.closest('.form-group').querySelector('.accesos-otro-input');
-    if(inputOtro) { inputOtro.style.display = (selectEl.value.toLowerCase() === 'otro') ? 'block' : 'none'; inputOtro.required = (selectEl.value.toLowerCase() === 'otro'); }
+    if(inputOtro) { inputOtro.style.display = (selectEl.value.toLowerCase() === 'otro') ? 'block' : 'none'; }
   }
   function toggleOtroEvento() {
     const sel = document.getElementById('tipo_evento_select'); const input = document.getElementById('tipo_evento_otro');
-    if(sel && input) { input.style.display = (sel.value.toLowerCase() === 'otro') ? 'block' : 'none'; input.required = (sel.value.toLowerCase() === 'otro'); }
+    if(sel && input) { input.style.display = (sel.value.toLowerCase() === 'otro') ? 'block' : 'none'; }
   }
   function toggleOtroDepto() {
     const sel = document.getElementById('depto_select'); const input = document.getElementById('depto_otro');
-    if(sel && input) { input.style.display = (sel.value.toLowerCase() === 'otro') ? 'block' : 'none'; input.required = (sel.value.toLowerCase() === 'otro'); }
+    if(sel && input) { input.style.display = (sel.value.toLowerCase() === 'otro') ? 'block' : 'none'; }
   }
   function calcularDias() {
     const fE = document.getElementById('a1_fecha_evento').value; const fV = document.getElementById('a1_fecha_visita').value; const res = document.getElementById('a1_dias_despues');
@@ -1660,28 +1655,10 @@
   }
 
   /* ========================================================
-     VALIDACIÓN DE PESTAÑAS (Blindado contra fallos)
+     NUEVO MOTOR DE NAVEGACIÓN Y VALIDACIÓN (Sin Obligatorios)
      ======================================================== */
   function validarYGuardar() {
-    const form = document.getElementById('edanMasterForm');
-    if (!form.checkValidity()) {
-      const invalidEl = form.querySelector(':invalid');
-      
-      const subTabContent = invalidEl.closest('.sub-tab-content');
-      if (subTabContent) {
-        const btn = document.querySelector(`button[onclick*="'${subTabContent.id}'"]`);
-        if(btn) showSubTab(btn, subTabContent.id);
-      }
-      
-      const tabContent = invalidEl.closest('.tab-content');
-      if (tabContent) {
-        const btn = document.querySelector(`button[onclick*="'${tabContent.id}'"]`);
-        if(btn) showTab(btn, tabContent.id);
-      }
-
-      setTimeout(() => { invalidEl.focus(); form.reportValidity(); }, 300);
-      return;
-    }
+    // Al no haber 'required', siempre pasa directo a guardar. Libertad total en campo.
     guardarFormularioOficial();
   }
 
@@ -1732,7 +1709,14 @@
 
     if (formData.get('a1_evento_select')) { expedienteData.a1_evento = (formData.get('a1_evento_select') === 'Otro') ? formData.get('a1_evento_otro') : formData.get('a1_evento_select'); }
     if (formData.get('a1_depto_select')) { expedienteData.a1_departamento = (formData.get('a1_depto_select') === 'Otro') ? formData.get('a1_depto_otro') : formData.get('a1_depto_select'); }
-    if (expedienteData.a1a_accesos_select) { expedienteData.a1a_accesos = expedienteData.a1a_accesos_select.map((sel, idx) => (sel === 'Otro') ? expedienteData.a1a_accesos_otro[idx] : sel); }
+    
+    // Mapeo seguro para evitar crash si el usuario no rellenó el campo "Otro"
+    if (expedienteData.a1a_accesos_select) { 
+        const otros = expedienteData.a1a_accesos_otro || [];
+        expedienteData.a1a_accesos = expedienteData.a1a_accesos_select.map((sel, idx) => (sel === 'Otro') ? (otros[idx] || 'Otro') : sel); 
+        delete expedienteData.a1a_accesos_select;
+        delete expedienteData.a1a_accesos_otro;
+    }
 
     expedienteData.fechaGuardado = new Date().toISOString();
     expedienteData.sincronizado = 0;
@@ -1745,7 +1729,7 @@
     hayCambiosSinGuardar = false; localStorage.removeItem('edan_draft_v2');
     if (navigator.onLine) sincronizarServidor();
     const btnTab = document.querySelector('button[onclick*="pendientes"]');
-    if(btnTab) showTab(btnTab, 'pendientes');
+    if(btnTab) btnTab.click();
   }
 
   /* ========================================================
@@ -1786,11 +1770,12 @@
       try {
         const res = await fetch('https://script.google.com/macros/s/AKfycbxn0vNpn1U2zpdOML28h_HtgyNUyU4mmnf-_TMwykgh3vsftGgSXnKvx9G2CKWcltp86w/exec', {
           method: 'POST',
-          body: JSON.stringify(exp) // Omitimos "headers" para evitar el bloqueo de CORS del navegador
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(exp)
         });
         
         if (res.ok) { await db.expedientes.update(exp.id, { sincronizado: 1 }); }
-      } catch (err) { console.log("Intento de subida en segundo plano falló, reintentando luego..."); break; }
+      } catch (err) { console.log("Intento de subida falló, reintentando luego..."); break; }
     }
     renderPendientes();
   }
